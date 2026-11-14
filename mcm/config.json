@@ -1,0 +1,69 @@
+{
+	"modName": "SN_SexualHistory",
+	"displayName": "$SNSH_ModName",
+	"minMcmVersion": 9,
+	"cursorFillMode": "topToBottom",
+	"content": [
+		{
+			"type": "header",
+			"text": "$SNSH_HeaderMemories"
+		},
+		{
+			"id": "bWitness:General",
+			"type": "toggle",
+			"text": "$SNSH_Witness",
+			"help": "$SNSH_WitnessHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
+			"type": "header",
+			"text": "$SNSH_HeaderComments"
+		},
+		{
+			"id": "bComments:General",
+			"type": "toggle",
+			"text": "$SNSH_Comments",
+			"help": "$SNSH_CommentsHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
+			"id": "iInterval:General",
+			"type": "slider",
+			"text": "$SNSH_Interval",
+			"help": "$SNSH_IntervalHelp",
+			"valueOptions": {
+				"min": 5,
+				"max": 300,
+				"step": 5,
+				"formatString": "{0}",
+				"sourceType": "ModSettingInt"
+			}
+		},
+		{
+			"id": "bPlayerScene:General",
+			"type": "toggle",
+			"text": "$SNSH_PlayerScene",
+			"help": "$SNSH_PlayerSceneHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
+			"id": "iHearRadius:General",
+			"type": "slider",
+			"text": "$SNSH_HearRadius",
+			"help": "$SNSH_HearRadiusHelp",
+			"valueOptions": {
+				"min": 500,
+				"max": 8000,
+				"step": 100,
+				"formatString": "{0}",
+				"sourceType": "ModSettingInt"
+			}
+		}
+	]
+}

@@ -16,8 +16,8 @@ How this mod is licensed
   https://www.gnu.org/licenses/gpl-3.0.txt.
 
 - Corresponding Source of the DLL:
-    * this mod's source, version 0.1.1:
-      https://github.com/nightlantern-mods/SN_SexualHistory (tag v0.1.1 and the main branch);
+    * this mod's source, version 0.2.0:
+      https://github.com/nightlantern-mods/SN_SexualHistory (tag v0.2.0 and the main branch);
     * CommonLibSSE NG 7.5.4, built from source with this mod:
       https://github.com/alandtse/CommonLibSSE-NG/tree/v7.5.4;
     * the other libraries listed below, at the versions given (pinned in xmake-requires.lock in
@@ -111,7 +111,8 @@ SOFTWARE.
 3. SkyrimNet plugin API headers
 -------------------------------
 
-src/skyrimnet/PublicAPI.h, PublicAPIMemoryQuery.h and PublicAPIDiaryQuery.h (Fateless.Ai).
+src/skyrimnet/PublicAPI.h, PublicAPIMemoryQuery.h and PublicAPIDiaryQuery.h (Fateless.Ai), and
+the SkyrimNet Papyrus API scripts/stubs/SkyrimNetApi.psc, used only to compile the scripts.
 SkyrimNet itself is a separate mod and is not included.
 
 MIT License

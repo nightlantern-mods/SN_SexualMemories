@@ -5,7 +5,7 @@ set_xmakever("3.0.0")
 includes(os.getenv("COMMONLIB_SSE_NG") or "C:/Modding/SkyrimNetAddon/src/skse/lib/commonlibsse-ng")
 
 local PLUGIN_NAME = "SN_SexualHistory"
-local PLUGIN_VERSION = "0.1.1"
+local PLUGIN_VERSION = "0.2.0"
 
 set_project(PLUGIN_NAME)
 set_version(PLUGIN_VERSION)

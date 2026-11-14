@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <thread>
 
 namespace SexualHistory
@@ -14,8 +15,10 @@ namespace SexualHistory
 
         constexpr const char* kScriptName = "SN_SexualHistoryNative";
         constexpr const char* kPromptName = "sn_sexual_history_memory";
+        constexpr const char* kWitnessPromptName = "sn_sexual_history_witness";
         constexpr RE::FormID  kPlayerID = 0x14;
         constexpr const char* kDashboardMarker = "[Sexual History]";
+        constexpr const char* kWitnessMarker = "[Sexual History / Witness]";
 
         constexpr std::size_t kMaxDetails = 40;     // scene details kept per scene
         constexpr std::size_t kMaxEvents = 80;      // SkyrimNet events passed to the LLM
@@ -44,6 +47,7 @@ namespace SexualHistory
             std::vector<std::string> details;   // in the order they played, without repeats in a row
             std::vector<std::string> climaxes;  // a name per climax, "someone" when unknown
             int64_t                  firstEventId = 0;  // events above this id happened during the scene
+            std::optional<Participant> witness;         // one bystander who saw it, when there was one
             std::chrono::steady_clock::time_point started;
         };
 
@@ -222,6 +226,7 @@ namespace SexualHistory
             return {
                 { "owner_name", a_owner.name },
                 { "owner_form_id", a_owner.formID },
+                { "owner_memories", a_memories.contains(a_owner.formID) ? json(a_memories.at(a_owner.formID)) : json::array() },
                 { "framework", a_scene.framework },
                 { "participants", participants },
                 { "location", a_scene.location },
@@ -294,7 +299,7 @@ namespace SexualHistory
             return memory;
         }
 
-        void StoreMemory(const Scene& a_scene, const Participant& a_owner, const std::string& a_response)
+        void StoreMemory(const Scene& a_scene, const Participant& a_owner, const std::string& a_response, bool a_witness)
         {
             if (!PublicAddMemory) {
                 return;
@@ -306,9 +311,13 @@ namespace SexualHistory
             }
             memory.tags.push_back("sexual_history");
             memory.tags.push_back("sex");
+            if (a_witness) {
+                memory.tags.push_back("witness");
+            }
             // The dashboard's memory list shows the emotion under the importance but not the tags,
             // so the marker goes there: "joyful [Sexual History]".
-            memory.emotion = memory.emotion.empty() ? kDashboardMarker : memory.emotion + " " + kDashboardMarker;
+            const std::string marker = a_witness ? kWitnessMarker : kDashboardMarker;
+            memory.emotion = memory.emotion.empty() ? marker : memory.emotion + " " + marker;
             json related = json::array();
             for (const auto& actor : a_scene.actors) {
                 if (actor.formID != a_owner.formID) {
@@ -342,8 +351,17 @@ namespace SexualHistory
             for (const auto& actor : a_scene->actors) {
                 memories[actor.formID] = RelevantMemories(*a_scene, actor);
             }
-            logger::info("Scene ({}) of {} actor(s): {} event(s), {} detail(s), {} climax(es)", a_scene->framework,
-                a_scene->actors.size(), events.size(), a_scene->details.size(), a_scene->climaxes.size());
+            // A witness who later joined the scene is a participant, not a witness.
+            std::optional<Participant> witness = a_scene->witness;
+            if (witness && std::ranges::any_of(a_scene->actors, [&](const auto& p) { return p.formID == witness->formID; })) {
+                witness.reset();
+            }
+            if (witness) {
+                memories[witness->formID] = RelevantMemories(*a_scene, *witness);
+            }
+            logger::info("Scene ({}) of {} actor(s): {} event(s), {} detail(s), {} climax(es), witness: {}", a_scene->framework,
+                a_scene->actors.size(), events.size(), a_scene->details.size(), a_scene->climaxes.size(),
+                witness ? witness->name : std::string("none"));
 
             // Everyone who took part gets a memory, the player too: SkyrimNet reads the player's
             // memories when it writes the player's lines and thoughts.
@@ -353,13 +371,31 @@ namespace SexualHistory
                     [a_scene, owner](const char* a_response, int a_success) {
                         const std::string response = a_response ? a_response : "";
                         if (a_success == 1) {
-                            StoreMemory(*a_scene, owner, response);
+                            StoreMemory(*a_scene, owner, response, false);
                         } else {
                             logger::error("Memory for {} failed: {}", owner.name, response);
                         }
                     });
                 if (!queued) {
                     logger::error("Could not queue the memory for {}", owner.name);
+                }
+            }
+
+            // The bystander's memory of what they saw, with a prompt of its own.
+            if (witness) {
+                const auto context = Dump(BuildContext(*a_scene, *witness, events, memories));
+                const auto owner = *witness;
+                const bool queued = PublicSendCustomPromptToLLM(kWitnessPromptName, "", context.c_str(),
+                    [a_scene, owner](const char* a_response, int a_success) {
+                        const std::string response = a_response ? a_response : "";
+                        if (a_success == 1) {
+                            StoreMemory(*a_scene, owner, response, true);
+                        } else {
+                            logger::error("Witness memory for {} failed: {}", owner.name, response);
+                        }
+                    });
+                if (!queued) {
+                    logger::error("Could not queue the witness memory for {}", owner.name);
                 }
             }
         }
@@ -418,6 +454,31 @@ namespace SexualHistory
             }
         }
 
+        bool NeedsWitness(RE::StaticFunctionTag*, int32_t a_key)
+        {
+            std::scoped_lock lock(g_lock);
+            const auto it = g_scenes.find(a_key);
+            return it != g_scenes.end() && !it->second.witness;
+        }
+
+        void Witness(RE::StaticFunctionTag*, int32_t a_key, RE::Actor* a_witness)
+        {
+            if (!a_witness || a_witness->GetFormID() == kPlayerID) {
+                return;
+            }
+            std::scoped_lock lock(g_lock);
+            const auto it = g_scenes.find(a_key);
+            if (it == g_scenes.end() || it->second.witness) {
+                return;
+            }
+            const auto id = a_witness->GetFormID();
+            if (std::ranges::any_of(it->second.actors, [id](const auto& p) { return p.formID == id; })) {
+                return;
+            }
+            it->second.witness = Participant{ id, ActorName(a_witness) };
+            logger::info("Scene {}: {} ({:08X}) saw it", a_key, it->second.witness->name, id);
+        }
+
         void SceneEnded(RE::StaticFunctionTag*, int32_t a_key)
         {
             std::shared_ptr<Scene> scene;
@@ -454,6 +515,8 @@ namespace SexualHistory
         a_vm->RegisterFunction("SceneDetail", kScriptName, SceneDetail);
         a_vm->RegisterFunction("Climax", kScriptName, Climax);
         a_vm->RegisterFunction("SceneEnded", kScriptName, SceneEnded);
+        a_vm->RegisterFunction("NeedsWitness", kScriptName, NeedsWitness);
+        a_vm->RegisterFunction("Witness", kScriptName, Witness);
         return true;
     }
 

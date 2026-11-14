@@ -3,7 +3,8 @@
 // Collects each OStim or SexLab scene while it runs (who, where, which animations and actions,
 // who climaxed) and, when it ends, gathers the SkyrimNet events of the scene and the
 // participants' memories, has the LLM write a first-person memory of the scene for everyone
-// who took part (the player too), and stores it in SkyrimNet as their memory.
+// who took part (the player too), and stores it in SkyrimNet as their memory. One bystander who
+// saw the scene, when the Papyrus side found one, gets a memory of what they saw.
 namespace SexualHistory
 {
     // Resolves the SkyrimNet API. Call at kDataLoaded.

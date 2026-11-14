@@ -12,6 +12,12 @@ Function SceneDetail(Int aiKey, Actor[] akActors, String asDetail) Global Native
 ; Somebody climaxed. akActor is None when the framework does not say who.
 Function Climax(Int aiKey, Actor akActor) Global Native
 
+; True while the scene has no witness yet (and is being recorded).
+Bool Function NeedsWitness(Int aiKey) Global Native
+
+; A bystander who saw the scene. Only the first one given counts; they get a memory of what they saw.
+Function Witness(Int aiKey, Actor akWitness) Global Native
+
 ; The scene ended: the plugin gathers the SkyrimNet events and memories of the participants, has
 ; the LLM write a memory for everyone who took part (the player too), and stores it in SkyrimNet.
 Function SceneEnded(Int aiKey) Global Native

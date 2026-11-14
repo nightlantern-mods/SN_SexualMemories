@@ -2,11 +2,11 @@
   "id": "nightlantern-mods.sn-sexual-history",
   "type": "bundle",
   "title": "SN Sexual History",
-  "tagline": "Every OStim or SexLab scene becomes a memory for everyone who took part.",
-  "description": "Prompt for SN_SexualHistory. When an OStim or SexLab scene ends, SN_SexualHistory.dll gathers who took part, the place, the animations played, who climaxed, the SkyrimNet events recorded during the scene and each participant's relevant memories, and sends them with the sn_sexual_history_memory prompt once for every participant, the player included. The answer is stored as that participant's memory.",
+  "tagline": "Every OStim or SexLab scene becomes a memory for everyone who took part, and for a bystander who saw it.",
+  "description": "Prompt for SN_SexualHistory. When an OStim or SexLab scene ends, SN_SexualHistory.dll gathers who took part, the place, the animations played, who climaxed, the SkyrimNet events recorded during the scene and each participant's relevant memories, and sends them with the sn_sexual_history_memory prompt once for every participant, the player included. The answer is stored as that participant's memory. When a bystander saw the scene, the sn_sexual_history_witness prompt writes that bystander's memory of what they saw.",
   "author": "nightlantern-mods",
   "icon": "heart",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "min_skyrimnet_version": "0.25.0",
   "mods": [
     {
