@@ -22,7 +22,9 @@ namespace SexualHistory
         constexpr std::size_t kMaxEventText = 400;  // characters of one event's text
         constexpr int         kMemoriesPerActor = 6;
         constexpr int         kFallbackEvents = 30;  // per actor, when the scene's first event is unknown
-        constexpr float       kDefaultImportance = 0.6f;
+        // A scene is never a minor memory: the AI's importance is raised to this when it is lower,
+        // and an answer without one gets it.
+        constexpr float       kMinImportance = 0.8f;
 
         constexpr std::array kMemoryTypes{ "EXPERIENCE", "RELATIONSHIP", "KNOWLEDGE", "LOCATION", "SKILL", "TRAUMA", "JOY" };
 
@@ -238,7 +240,7 @@ namespace SexualHistory
             std::string content;
             std::string emotion;
             std::string type = "RELATIONSHIP";
-            float       importance = kDefaultImportance;
+            float       importance = kMinImportance;
             json        tags = json::array();
         };
 
@@ -263,7 +265,7 @@ namespace SexualHistory
                         memory.emotion = answer["emotion"].get<std::string>();
                     }
                     if (answer.contains("importance_score") && answer["importance_score"].is_number()) {
-                        memory.importance = std::clamp(answer["importance_score"].get<float>(), 0.0f, 1.0f);
+                        memory.importance = std::clamp(answer["importance_score"].get<float>(), kMinImportance, 1.0f);
                     }
                     if (answer.contains("type") && answer["type"].is_string()) {
                         auto type = answer["type"].get<std::string>();

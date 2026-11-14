@@ -1,4 +1,4 @@
-# SN Sexual History 0.1.0
+# SN Sexual History 0.1.1
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
 
@@ -15,7 +15,8 @@ Each memory is written in first person from its owner's point of view and covers
   memories of the others and on their character profile.
 
 The memory also gets an emotion, an importance and a type (relationship, joy, trauma or
-experience), chosen by the AI. Nothing to set up: there is no MCM.
+experience), chosen by the AI. The importance is never below 0.8: such a scene is never a minor
+memory, and the AI's value is raised to 0.8 when it is lower. Nothing to set up: there is no MCM.
 
 ## Requirements
 
@@ -93,7 +94,7 @@ laid out in `dist/`. Compile the scripts with the Creation Kit's Papyrus compile
 
 ## Files
 
-- `SN_SexualHistory_0.1.0.zip`: the mod, ready for a mod manager, with `THIRD_PARTY_NOTICES.txt`
+- `SN_SexualHistory_0.1.1.zip`: the mod, ready for a mod manager, with `THIRD_PARTY_NOTICES.txt`
   and `COPYING.txt` (see License).
 
 ## License
