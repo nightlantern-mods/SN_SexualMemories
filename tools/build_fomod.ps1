@@ -58,8 +58,9 @@ foreach ($l in $languages) {
 # ---- the installer ----
 # Vortex re-encodes the XML as UTF-16 and only strips an encoding written in double quotes: a
 # single-quoted one fails at line 1. No BOM either. The mod managers name the installed mod after
-# info.xml's Name, so it stays "SN_SexualHistory", the name the plain archives of 0.1.x got from
-# their file name: updating replaces the old mod instead of adding a second one.
+# info.xml's Name, so it stays "SN_SexualHistory" (the plugin's name; the mod is shown as SN Sexual
+# Memories), the name the plain archives of 0.1.x got from their file name: updating replaces the
+# old mod instead of adding a second one.
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $esc = { param($s) [System.Security.SecurityElement]::Escape($s) }
 $info = @"
@@ -68,7 +69,7 @@ $info = @"
   <Name>SN_SexualHistory</Name>
   <Author>nightlantern-mods</Author>
   <Version>$Version</Version>
-  <Website>https://github.com/nightlantern-mods/SN_SexualHistory</Website>
+  <Website>https://github.com/nightlantern-mods/SN_SexualMemories</Website>
   <Description>Adult content. A SkyrimNet add-on for OStim or SexLab: every scene becomes a memory for each character who took part, and NPCs in a scene speak about it. Choose the language of the settings menu.</Description>
   <Groups>
     <element>Gameplay</element>
@@ -104,7 +105,7 @@ $patterns = ($languages | ForEach-Object {
 $config = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
-  <moduleName>SN Sexual History</moduleName>
+  <moduleName>SN Sexual Memories</moduleName>
   <installSteps order="Explicit">
     <installStep name="Language">
       <optionalFileGroups order="Explicit">

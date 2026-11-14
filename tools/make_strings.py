@@ -1,4 +1,4 @@
-"""Writes the MCM translation files (UTF-16 LE with BOM) of SN Sexual History.
+"""Writes the MCM translation files (UTF-16 LE with BOM) of SN Sexual Memories.
 
 usage: python -I make_strings.py <en|ja> <Interface/Translations folder>
 
@@ -13,7 +13,7 @@ LANGUAGES = ['CHINESE', 'CZECH', 'ENGLISH', 'FRENCH', 'GERMAN', 'ITALIAN', 'JAPA
 
 # key, English, Japanese
 STRINGS = [
-    ('$SNSH_ModName', 'SN Sexual History', 'SN Sexual History'),
+    ('$SNSH_ModName', 'SN Sexual Memories', 'SN Sexual Memories'),
 
     ('$SNSH_HeaderMemories', 'Memories', '記憶'),
     ('$SNSH_Witness', 'A witness remembers too', '目撃者の記憶も作る'),

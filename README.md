@@ -1,6 +1,9 @@
-# SN Sexual History 0.2.0
+# SN Sexual Memories 0.2.1
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
+
+Its files keep the name the mod first had, SN Sexual History: the plugin is `SN_SexualHistory.esp`
+and the SKSE plugin `SN_SexualHistory.dll`, so saves and settings carry over.
 
 Every OStim or SexLab scene is remembered and talked about:
 
@@ -89,8 +92,8 @@ played in Japanese gets Japanese memories.
 In SkyrimNet's dashboard (History > Memories, or a character's Memories tab), the memories made
 by this mod have a mark after the emotion, under the importance:
 
-- `[Sexual History]` for a participant's memory, for example `joyful [Sexual History]`;
-- `[Sexual History / Witness]` for the witness's memory.
+- `[Sexual Memories]` for a participant's memory, for example `joyful [Sexual Memories]`;
+- `[Sexual Memories / Witness]` for the witness's memory.
 
 They are also tagged `sexual_history` and `sex` (and `witness`), which shows in the memory's edit
 form.
@@ -139,7 +142,7 @@ laid out in `dist/`. Compile the scripts with the Creation Kit's Papyrus compile
 
 ## Files
 
-- `SN_SexualHistory_0.2.0.zip`: the mod as a FOMOD installer, with the settings menu in English
+- `SN_SexualHistory_0.2.1.zip`: the mod as a FOMOD installer, with the settings menu in English
   or Japanese, and with `THIRD_PARTY_NOTICES.txt` and `COPYING.txt` (see License). Without an
   installer, use `core/<language>/` from the archive.
 
@@ -174,6 +177,6 @@ Third-party code, with the full license texts in [THIRD_PARTY_NOTICES.txt](THIRD
 - nlohmann/json 3.12.0, spdlog 1.16.0, DirectXMath, DirectX Tool Kit and rapidcsv: MIT, or
   BSD-3-Clause for rapidcsv.
 
-SN Sexual History is an unofficial add-on that works with SkyrimNet; it is not made or endorsed by
+SN Sexual Memories is an unofficial add-on that works with SkyrimNet; it is not made or endorsed by
 Fateless.Ai. The Elder Scrolls V: Skyrim is a trademark of ZeniMax Media Inc. This mod is not
 affiliated with or endorsed by Bethesda Softworks or ZeniMax Media.

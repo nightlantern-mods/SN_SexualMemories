@@ -17,8 +17,8 @@ namespace SexualHistory
         constexpr const char* kPromptName = "sn_sexual_history_memory";
         constexpr const char* kWitnessPromptName = "sn_sexual_history_witness";
         constexpr RE::FormID  kPlayerID = 0x14;
-        constexpr const char* kDashboardMarker = "[Sexual History]";
-        constexpr const char* kWitnessMarker = "[Sexual History / Witness]";
+        constexpr const char* kDashboardMarker = "[Sexual Memories]";
+        constexpr const char* kWitnessMarker = "[Sexual Memories / Witness]";
 
         constexpr std::size_t kMaxDetails = 40;     // scene details kept per scene
         constexpr std::size_t kMaxEvents = 80;      // SkyrimNet events passed to the LLM
@@ -315,7 +315,7 @@ namespace SexualHistory
                 memory.tags.push_back("witness");
             }
             // The dashboard's memory list shows the emotion under the importance but not the tags,
-            // so the marker goes there: "joyful [Sexual History]".
+            // so the marker goes there: "joyful [Sexual Memories]".
             const std::string marker = a_witness ? kWitnessMarker : kDashboardMarker;
             memory.emotion = memory.emotion.empty() ? marker : memory.emotion + " " + marker;
             json related = json::array();
