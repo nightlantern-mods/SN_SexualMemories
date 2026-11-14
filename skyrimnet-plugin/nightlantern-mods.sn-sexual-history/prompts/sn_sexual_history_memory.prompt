@@ -1,4 +1,8 @@
 [ system ]
+{# Partly based on SkyrimNet's prompts/memory/generate_memory.prompt (its role line, the response
+   format and the lists of emotions and memory types), modified and distributed for use with
+   SkyrimNet under section 3 (Content packs) of the SkyrimNet Game Plugin License.
+   Copyright (c) 2025-2026 Fateless.Ai. All rights reserved. #}
 {# Sent by SN_SexualHistory.dll when an OStim or SexLab scene ends, once for everyone who took part, the player included.
    The answer becomes that participant's SkyrimNet memory of the scene.
    Context: owner_name, owner_form_id, framework, location, game_date, real_minutes,

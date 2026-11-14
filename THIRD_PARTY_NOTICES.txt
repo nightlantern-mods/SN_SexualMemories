@@ -6,7 +6,14 @@ How this mod is licensed
 
 - The source code of this mod (https://github.com/nightlantern-mods/SN_SexualHistory) is
   licensed under the MIT License (section 1 below). This covers the plugin's own C++ sources,
-  the Papyrus scripts, the ESP, the SkyrimNet prompt bundle and the texts.
+  the Papyrus scripts, the ESP, the MCM config, the texts and the tools, except the two prompts
+  described next.
+
+- The two SkyrimNet prompts, sn_sexual_history_memory.prompt and sn_sexual_history_witness.prompt
+  (SKSE/Plugins/SkyrimNet/external/nightlantern-mods.sn-sexual-history/prompts/), are partly
+  based on SkyrimNet's own prompt prompts/memory/generate_memory.prompt. They are distributed
+  under section 3 (Content packs) of the SkyrimNet Game Plugin License, for use with SkyrimNet
+  only (section 8 below), not under the MIT License.
 
 - The built SKSE plugin, SKSE/Plugins/SN_SexualHistory.dll, statically links CommonLibSSE NG,
   which is licensed under GPL-3.0-or-later with a Modding Exception and a GPL-3.0 Linking
@@ -266,3 +273,19 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+8. SkyrimNet prompts
+--------------------
+
+SKSE/Plugins/SkyrimNet/external/nightlantern-mods.sn-sexual-history/prompts/
+sn_sexual_history_memory.prompt and sn_sexual_history_witness.prompt are partly based on
+SkyrimNet's prompts/memory/generate_memory.prompt (its role line, the response format and the
+lists of emotions and memory types), modified for this mod. SkyrimNet's Game Plugin License, section
+3 (Content packs), allows the prompts and templates under plugins/skyrimnet/base to be copied,
+modified and distributed as part of a mod that is used with SkyrimNet, keeping this copyright
+notice; they may not be used with other software. SkyrimNet itself is not included.
+
+Copyright (c) 2025-2026 Fateless.Ai. All rights reserved.
+
+SkyrimNet Game Plugin License: https://github.com/MinLL/SkyrimNet-GamePlugin/blob/main/LICENSE

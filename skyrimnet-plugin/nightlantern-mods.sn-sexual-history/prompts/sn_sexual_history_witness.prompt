@@ -1,4 +1,8 @@
 [ system ]
+{# Partly based on SkyrimNet's prompts/memory/generate_memory.prompt (its role line, the response
+   format and the lists of emotions and memory types), modified and distributed for use with
+   SkyrimNet under section 3 (Content packs) of the SkyrimNet Game Plugin License.
+   Copyright (c) 2025-2026 Fateless.Ai. All rights reserved. #}
 {# Sent by SN_SexualHistory.dll when an OStim or SexLab scene ends and a bystander saw it: one NPC
    near the scene who was not in it. The answer becomes that bystander's SkyrimNet memory.
    Context: owner_name and owner_form_id (the bystander), owner_memories (the bystander's memories

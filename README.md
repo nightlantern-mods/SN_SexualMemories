@@ -125,7 +125,7 @@ dashboard if you want them gone.
 | Folder | |
 |---|---|
 | `src/` | The SKSE plugin (C++23, [CommonLibSSE-NG](https://github.com/alandtse/CommonLibVR/tree/ng)). |
-| `scripts/` | The Papyrus sources. `scripts/stubs/` holds compile-only headers for OStim, OStimNet, SexLab, SKSE, MCM Helper and SkyrimNet; they are not shipped. |
+| `scripts/` | The Papyrus sources. `scripts/stubs/` holds compile-only headers, not shipped: stubs written for this repository that declare only the functions used from OStim, OStimNet, SexLab, SKSE and MCM Helper, and SkyrimNet's MIT-licensed Papyrus API `SkyrimNetApi.psc` (license in `scripts/stubs/LICENSE-SkyrimNetApi.txt`). |
 | `plugin/` | `SN_SexualHistory.esp` as YAML: one quest for the memories, one for the lines and the MCM. |
 | `mcm/` | The MCM config (`MCM/Config/SN_SexualHistory/`). |
 | `skyrimnet-plugin/` | The SkyrimNet prompt bundle. |
@@ -145,7 +145,15 @@ laid out in `dist/`. Compile the scripts with the Creation Kit's Papyrus compile
 
 ## License
 
-The source in this repository is MIT licensed, see [LICENSE](LICENSE).
+The source in this repository is MIT licensed, see [LICENSE](LICENSE), except the two prompts
+below.
+
+The prompts `sn_sexual_history_memory.prompt` and `sn_sexual_history_witness.prompt`
+(`skyrimnet-plugin/nightlantern-mods.sn-sexual-history/prompts/`) are partly based on SkyrimNet's
+own `prompts/memory/generate_memory.prompt`. They are modified and distributed under section 3
+(Content packs) of the [SkyrimNet Game Plugin License](https://github.com/MinLL/SkyrimNet-GamePlugin/blob/main/LICENSE),
+for use with SkyrimNet only, not under the MIT License.
+Copyright (c) 2025-2026 Fateless.Ai. All rights reserved.
 
 The built plugin, `SKSE/Plugins/SN_SexualHistory.dll`, is distributed under the
 [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.txt): it statically links
@@ -160,6 +168,12 @@ Third-party code, with the full license texts in [THIRD_PARTY_NOTICES.txt](THIRD
 
 - CommonLibSSE NG: GPL-3.0-or-later with exceptions; originally based on MIT-licensed code.
 - The SkyrimNet API headers in `src/skyrimnet/` and the SkyrimNet Papyrus API in
-  `scripts/stubs/SkyrimNetApi.psc`: MIT, Fateless.Ai (see the LICENSE in `src/skyrimnet/`).
+  `scripts/stubs/SkyrimNetApi.psc`: MIT, Fateless.Ai (see `src/skyrimnet/LICENSE` and
+  `scripts/stubs/LICENSE-SkyrimNetApi.txt`).
+- The two prompts above: SkyrimNet Game Plugin License, section 3, Fateless.Ai.
 - nlohmann/json 3.12.0, spdlog 1.16.0, DirectXMath, DirectX Tool Kit and rapidcsv: MIT, or
   BSD-3-Clause for rapidcsv.
+
+SN Sexual History is an unofficial add-on that works with SkyrimNet; it is not made or endorsed by
+Fateless.Ai. The Elder Scrolls V: Skyrim is a trademark of ZeniMax Media Inc. This mod is not
+affiliated with or endorsed by Bethesda Softworks or ZeniMax Media.
