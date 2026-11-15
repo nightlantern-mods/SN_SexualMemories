@@ -64,6 +64,72 @@
 				"formatString": "{0}",
 				"sourceType": "ModSettingInt"
 			}
+		},
+		{
+			"type": "header",
+			"text": "$SNSH_HeaderComplaints"
+		},
+		{
+			"id": "bComplaints:General",
+			"type": "toggle",
+			"text": "$SNSH_Complaints",
+			"help": "$SNSH_ComplaintsHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
+			"id": "iComplaintInterval:General",
+			"type": "slider",
+			"text": "$SNSH_ComplaintInterval",
+			"help": "$SNSH_ComplaintIntervalHelp",
+			"valueOptions": {
+				"min": 30,
+				"max": 3600,
+				"step": 30,
+				"formatString": "{0}",
+				"sourceType": "ModSettingInt"
+			}
+		},
+		{
+			"id": "iComplaintSex:General",
+			"type": "enum",
+			"text": "$SNSH_ComplaintSex",
+			"help": "$SNSH_ComplaintSexHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingInt",
+				"options": [
+					"$SNSH_SexAnyone",
+					"$SNSH_SexWomen",
+					"$SNSH_SexMen"
+				]
+			}
+		},
+		{
+			"type": "header",
+			"text": "$SNSH_HeaderPlayerTalk"
+		},
+		{
+			"id": "bPlayerTalk:General",
+			"type": "toggle",
+			"text": "$SNSH_PlayerTalk",
+			"help": "$SNSH_PlayerTalkHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
+			"id": "iPlayerTalkInterval:General",
+			"type": "slider",
+			"text": "$SNSH_PlayerTalkInterval",
+			"help": "$SNSH_PlayerTalkIntervalHelp",
+			"valueOptions": {
+				"min": 10,
+				"max": 3600,
+				"step": 10,
+				"formatString": "{0}",
+				"sourceType": "ModSettingInt"
+			}
 		}
 	]
 }

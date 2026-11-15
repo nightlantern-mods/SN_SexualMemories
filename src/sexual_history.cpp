@@ -25,6 +25,7 @@ namespace SexualHistory
         constexpr std::size_t kMaxEventText = 400;  // characters of one event's text
         constexpr int         kMemoriesPerActor = 6;
         constexpr int         kFallbackEvents = 30;  // per actor, when the scene's first event is unknown
+        constexpr std::size_t kMaxEventsBefore = 30;  // events from before the scene: how it came about
         // A scene is never a minor memory: the AI's importance is raised to this when it is lower,
         // and an answer without one gets it.
         constexpr float       kMinImportance = 0.8f;
@@ -156,31 +157,42 @@ namespace SexualHistory
             return line;
         }
 
-        // What SkyrimNet recorded during the scene for any of its participants, oldest first.
-        std::vector<std::string> SceneEvents(const Scene& a_scene)
+        struct SceneEventLines
         {
-            std::map<int64_t, json> byId;
+            std::vector<std::string> before;  // the last events before the scene: how it came about
+            std::vector<std::string> during;  // what was recorded while it ran
+        };
+
+        // What SkyrimNet recorded for any of the scene's participants just before the scene and
+        // while it ran, oldest first. When the scene's first event is unknown, the recent events
+        // all count as "during".
+        SceneEventLines SceneEvents(const Scene& a_scene)
+        {
+            SceneEventLines lines;
             if (!PublicGetRecentEvents) {
-                return {};
+                return lines;
             }
+            std::map<int64_t, json> byId;
             for (const auto& actor : a_scene.actors) {
-                const auto events = ParseArray(PublicGetRecentEvents(actor.formID, a_scene.firstEventId > 0 ? 100 : kFallbackEvents, ""));
+                const auto events = ParseArray(PublicGetRecentEvents(actor.formID, a_scene.firstEventId > 0 ? 150 : kFallbackEvents, ""));
                 for (const auto& event : events) {
-                    if (!event.is_object() || !event.contains("id") || !event["id"].is_number()) {
-                        continue;
-                    }
-                    const auto id = event["id"].get<int64_t>();
-                    if (a_scene.firstEventId == 0 || id > a_scene.firstEventId) {
-                        byId.emplace(id, event);
+                    if (event.is_object() && event.contains("id") && event["id"].is_number()) {
+                        byId.emplace(event["id"].get<int64_t>(), event);
                     }
                 }
             }
-            std::vector<std::string> lines;
             for (const auto& [id, event] : byId) {
-                lines.push_back(EventLine(event));
+                if (a_scene.firstEventId == 0 || id > a_scene.firstEventId) {
+                    lines.during.push_back(EventLine(event));
+                } else {
+                    lines.before.push_back(EventLine(event));
+                }
             }
-            if (lines.size() > kMaxEvents) {
-                lines.erase(lines.begin(), lines.end() - kMaxEvents);
+            if (lines.during.size() > kMaxEvents) {
+                lines.during.erase(lines.during.begin(), lines.during.end() - kMaxEvents);
+            }
+            if (lines.before.size() > kMaxEventsBefore) {
+                lines.before.erase(lines.before.begin(), lines.before.end() - kMaxEventsBefore);
             }
             return lines;
         }
@@ -197,7 +209,8 @@ namespace SexualHistory
                     query += (query.empty() ? "" : ", ") + other.name;
                 }
             }
-            query = "feelings, relationship and intimacy with " + query;
+            // Neutral on purpose: what they are to each other, not only tender moments.
+            query = "my relationship and dealings with " + query + ": how we know each other, what we owe each other, money or work between us";
             std::vector<std::string> texts;
             for (const auto& memory : ParseArray(PublicGetMemoriesForActor(a_actor.formID, kMemoriesPerActor, query.c_str()))) {
                 if (memory.is_object() && memory.contains("text") && memory["text"].is_string()) {
@@ -207,7 +220,7 @@ namespace SexualHistory
             return texts;
         }
 
-        json BuildContext(const Scene& a_scene, const Participant& a_owner, const std::vector<std::string>& a_events,
+        json BuildContext(const Scene& a_scene, const Participant& a_owner, const SceneEventLines& a_events,
             const std::map<RE::FormID, std::vector<std::string>>& a_memories)
         {
             json participants = json::array();
@@ -233,7 +246,8 @@ namespace SexualHistory
                 { "game_date", a_scene.gameDate },
                 { "scene_details", a_scene.details },
                 { "climaxes", a_scene.climaxes },
-                { "events", a_events },
+                { "events_before", a_events.before },
+                { "events", a_events.during },
                 { "real_minutes", minutes },
             };
         }
@@ -359,8 +373,8 @@ namespace SexualHistory
             if (witness) {
                 memories[witness->formID] = RelevantMemories(*a_scene, *witness);
             }
-            logger::info("Scene ({}) of {} actor(s): {} event(s), {} detail(s), {} climax(es), witness: {}", a_scene->framework,
-                a_scene->actors.size(), events.size(), a_scene->details.size(), a_scene->climaxes.size(),
+            logger::info("Scene ({}) of {} actor(s): {} event(s) before, {} during, {} detail(s), {} climax(es), witness: {}", a_scene->framework,
+                a_scene->actors.size(), events.before.size(), events.during.size(), a_scene->details.size(), a_scene->climaxes.size(),
                 witness ? witness->name : std::string("none"));
 
             // Everyone who took part gets a memory, the player too: SkyrimNet reads the player's
@@ -479,6 +493,202 @@ namespace SexualHistory
             logger::info("Scene {}: {} ({:08X}) saw it", a_key, it->second.witness->name, id);
         }
 
+        // ---- Partners (for the complaints of SN_SexualHistoryComplaints) ----------------------
+
+        constexpr RE::FormID kPlayerBaseID = 0x7;
+
+        struct Partner
+        {
+            RE::TESNPC* npc = nullptr;
+            std::string label;  // "wife", "husband", "lover"...; "partner" when the record has none
+        };
+
+        // The NPCs an actor's base is tied to at the Lover level (spouses and lovers), the player
+        // excepted. Relationships set at run time that never made a record are not seen.
+        std::vector<Partner> Partners(RE::Actor* a_actor)
+        {
+            std::vector<Partner> partners;
+            auto* base = a_actor ? a_actor->GetActorBase() : nullptr;
+            auto* data = RE::TESDataHandler::GetSingleton();
+            if (!base || !data) {
+                return partners;
+            }
+            for (auto* relationship : data->GetFormArray<RE::BGSRelationship>()) {
+                if (!relationship || relationship->level.get() != RE::BGSRelationship::RELATIONSHIP_LEVEL::kLover) {
+                    continue;
+                }
+                RE::TESNPC* other = relationship->npc1 == base ? relationship->npc2 :
+                                    relationship->npc2 == base ? relationship->npc1 : nullptr;
+                if (!other || other->GetFormID() == kPlayerBaseID ||
+                    std::ranges::any_of(partners, [other](const auto& p) { return p.npc == other; })) {
+                    continue;
+                }
+                std::string label;
+                if (auto* type = relationship->assocType) {
+                    const auto sex = other->GetSex() == RE::SEX::kFemale ? RE::BGSAssociationType::Sexes::kFemale :
+                                                                            RE::BGSAssociationType::Sexes::kMale;
+                    const auto& text = type->associationLabels[RE::BGSAssociationType::Members::kParent][sex];
+                    label = text.empty() ? "" : text.c_str();
+                }
+                std::ranges::transform(label, label.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                partners.push_back({ other, label.empty() ? "partner" : label });
+            }
+            return partners;
+        }
+
+        // "Sigrid (wife)", "Sigrid (wife) and Hod (lover)", or "" when the actor has no partner.
+        RE::BSFixedString PartnerDescription(RE::StaticFunctionTag*, RE::Actor* a_actor)
+        {
+            const auto partners = Partners(a_actor);
+            std::string text;
+            for (std::size_t i = 0; i < partners.size(); ++i) {
+                const char* name = partners[i].npc->GetName();
+                if (i > 0) {
+                    text += i + 1 == partners.size() ? " and " : ", ";
+                }
+                text += std::string(name ? name : "someone") + " (" + partners[i].label + ")";
+            }
+            return text;
+        }
+
+        // The partners who are loaded near the player now, so their distance can be checked.
+        std::vector<RE::Actor*> LoadedPartners(RE::StaticFunctionTag*, RE::Actor* a_actor)
+        {
+            std::vector<RE::Actor*> found;
+            const auto partners = Partners(a_actor);
+            auto* lists = RE::ProcessLists::GetSingleton();
+            if (partners.empty() || !lists) {
+                return found;
+            }
+            lists->ForEachHighActor([&](RE::Actor* a_other) {
+                if (a_other && a_other != a_actor &&
+                    std::ranges::any_of(partners, [a_other](const auto& p) { return p.npc == a_other->GetActorBase(); })) {
+                    found.push_back(a_other);
+                }
+                return RE::BSContainer::ForEachResult::kContinue;
+            });
+            return found;
+        }
+
+        // True while the actor is in an OStim or SexLab scene this plugin is following.
+        bool InScene(RE::StaticFunctionTag*, RE::Actor* a_actor)
+        {
+            if (!a_actor) {
+                return false;
+            }
+            const auto id = a_actor->GetFormID();
+            std::scoped_lock lock(g_lock);
+            return std::ranges::any_of(g_scenes, [id](const auto& entry) {
+                return std::ranges::any_of(entry.second.actors, [id](const auto& p) { return p.formID == id; });
+            });
+        }
+
+        // ---- The player speaks up (SN_SexualHistoryPlayerTalk) -----------------------------------
+
+        constexpr const char* kPlayerTalkPrompt = "sn_sexual_history_player_talk";
+        std::atomic<bool>     g_playerTalkBusy = false;
+
+        // The LLM's line without wrapping quotes, line breaks or a runaway length.
+        std::string CleanLine(std::string a_line)
+        {
+            for (auto& c : a_line) {
+                if (c == '\r' || c == '\n') {
+                    c = ' ';
+                }
+            }
+            const auto first = a_line.find_first_not_of(" \t\"'");
+            const auto last = a_line.find_last_not_of(" \t\"'");
+            a_line = first == std::string::npos ? std::string() : a_line.substr(first, last - first + 1);
+            return Truncate(a_line, 600);
+        }
+
+        std::vector<std::string> MemoryTexts(RE::FormID a_owner, int a_count, const std::string& a_query)
+        {
+            std::vector<std::string> texts;
+            if (!PublicGetMemoriesForActor) {
+                return texts;
+            }
+            for (const auto& memory : ParseArray(PublicGetMemoriesForActor(a_owner, a_count, a_query.c_str()))) {
+                if (memory.is_object() && memory.contains("text") && memory["text"].is_string()) {
+                    texts.push_back(Truncate(memory["text"].get<std::string>(), kMaxEventText));
+                }
+            }
+            return texts;
+        }
+
+        // Has the LLM write a line the player says to a_target, from the recent events, the
+        // player's memories (recent ones and those about a_target) and their relationship; then the
+        // player says it (in their voice when SkyrimNet voices the player) and a_target is told, so
+        // they answer. Returns False when one is already being written.
+        bool PlayerTalk(RE::StaticFunctionTag*, RE::Actor* a_target, int32_t a_relationshipRank, RE::BSFixedString a_location)
+        {
+            auto* player = RE::PlayerCharacter::GetSingleton();
+            if (!a_target || !player || !PublicSendCustomPromptToLLM || g_playerTalkBusy.exchange(true)) {
+                return false;
+            }
+            const RE::FormID targetID = a_target->GetFormID();
+            const std::string targetName = ActorName(a_target);
+            const std::string playerName = ActorName(player);
+            const std::string location = a_location.c_str();
+            std::thread([targetID, targetName, playerName, location, a_relationshipRank] {
+                json events = json::array();
+                if (PublicGetRecentEvents) {
+                    std::map<int64_t, json> byId;
+                    for (const auto id : { kPlayerID, targetID }) {
+                        for (const auto& event : ParseArray(PublicGetRecentEvents(id, 15, ""))) {
+                            if (event.is_object() && event.contains("id") && event["id"].is_number()) {
+                                byId.emplace(event["id"].get<int64_t>(), event);
+                            }
+                        }
+                    }
+                    for (const auto& [id, event] : byId) {
+                        events.push_back(EventLine(event));
+                    }
+                    while (events.size() > 25) {
+                        events.erase(events.begin());
+                    }
+                }
+                const json context = {
+                    { "player_name", playerName },
+                    { "player_form_id", kPlayerID },
+                    { "target_name", targetName },
+                    { "target_form_id", targetID },
+                    { "relationship_rank", a_relationshipRank },
+                    { "location", location },
+                    { "memories_about_target", MemoryTexts(kPlayerID, 6, targetName) },
+                    { "recent_memories", MemoryTexts(kPlayerID, 4, "") },
+                    { "events", events },
+                };
+                const bool queued = PublicSendCustomPromptToLLM(kPlayerTalkPrompt, "", Dump(context).c_str(),
+                    [targetID, targetName, playerName](const char* a_response, int a_success) {
+                        const std::string line = a_success == 1 && a_response ? CleanLine(a_response) : std::string();
+                        if (line.empty()) {
+                            logger::error("Player line to {} failed: {}", targetName, a_response ? a_response : "");
+                            g_playerTalkBusy = false;
+                            return;
+                        }
+                        SKSE::GetTaskInterface()->AddTask([line, targetID, targetName, playerName]() {
+                            const auto vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+                            RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> none;
+                            const bool voiced = vm && vm->DispatchStaticCall("SkyrimNetApi", "TriggerPlayerTTS", RE::MakeFunctionArguments(std::string(line)), none);
+                            // TriggerPlayerTTS shows no subtitle: the HUD's own one shows the line.
+                            if (vm) {
+                                vm->DispatchStaticCall("SN_SexualHistorySubtitle", "Show", RE::MakeFunctionArguments(std::string(line)), none);
+                            }
+                            const std::string told = playerName + " says to " + targetName + ": \"" + line + "\"";
+                            const auto id = PublicRegisterEvent ? PublicRegisterEvent("direct_narration", told.c_str(), targetID, kPlayerID, nullptr, 0) : 0;
+                            logger::info("Player line to {} ({:08X}), narration {}, voice {}: {}", targetName, targetID, id, voiced ? "asked" : "not available", line);
+                            g_playerTalkBusy = false;
+                        });
+                    });
+                if (!queued) {
+                    logger::error("Could not queue the player line to {}", targetName);
+                    g_playerTalkBusy = false;
+                }
+            }).detach();
+            return true;
+        }
+
         void SceneEnded(RE::StaticFunctionTag*, int32_t a_key)
         {
             std::shared_ptr<Scene> scene;
@@ -517,6 +727,10 @@ namespace SexualHistory
         a_vm->RegisterFunction("SceneEnded", kScriptName, SceneEnded);
         a_vm->RegisterFunction("NeedsWitness", kScriptName, NeedsWitness);
         a_vm->RegisterFunction("Witness", kScriptName, Witness);
+        a_vm->RegisterFunction("PartnerDescription", kScriptName, PartnerDescription);
+        a_vm->RegisterFunction("LoadedPartners", kScriptName, LoadedPartners);
+        a_vm->RegisterFunction("InScene", kScriptName, InScene);
+        a_vm->RegisterFunction("PlayerTalk", kScriptName, PlayerTalk);
         return true;
     }
 

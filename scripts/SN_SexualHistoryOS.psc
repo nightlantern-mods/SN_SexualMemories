@@ -35,6 +35,14 @@ String Function SceneFacts(Int aiThreadID) Global
 	If furnitureType != "" && furnitureType != "none"
 		text += "Furniture: " + furnitureType + ". "
 	EndIf
+	; OStimNet, when installed, says what kind of encounter it is (romantic, lustful,
+	; transactional, dom, aggressive, platonic).
+	If Game.IsPluginInstalled("TT_OStimNet.esp")
+		String intent = SN_SexualHistoryONet.Intent(aiThreadID)
+		If intent != ""
+			text += "OStimNet intent: " + intent + ". "
+		EndIf
+	EndIf
 	Return text
 EndFunction
 

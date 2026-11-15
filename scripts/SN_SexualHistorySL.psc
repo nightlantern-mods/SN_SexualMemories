@@ -240,6 +240,24 @@ String Function NarrationFacts(Int slot) Global
 	Return text
 EndFunction
 
+; Who is on the receiving end of a forced scene playing in a slot: P+'s submissives when the scene
+; is not consensual, 1.6x's victims when it is aggressive. Empty when the scene is consensual.
+Actor[] Function PassiveActors(Int slot) Global
+	sslThreadController thread = PlayingThread(slot)
+	Actor[] nobody
+	If !thread
+		Return nobody
+	EndIf
+	If IsPPlus()
+		If !thread.IsConsent()
+			Return thread.GetSubmissives()
+		EndIf
+	ElseIf thread.IsAggressive
+		Return thread.Victims
+	EndIf
+	Return nobody
+EndFunction
+
 String Function Append(String asList, String asItem) Global
 	If asList == ""
 		Return asItem

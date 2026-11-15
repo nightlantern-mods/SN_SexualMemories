@@ -38,6 +38,31 @@ STRINGS = [
     ('$SNSH_HearRadiusHelp',
      'Only NPCs within this distance of you speak.',
      'あなたからこの距離以内にいるNPCだけが発言します。'),
+
+    ('$SNSH_HeaderComplaints', 'Complaints about a partner', '夫・妻・恋人への不満'),
+    ('$SNSH_Complaints', 'NPCs complain about their partner', '夫・妻・恋人への不満を言う'),
+    ('$SNSH_ComplaintsHelp',
+     'Now and then an NPC near you who has a husband, wife or lover complains to you about them, written and voiced by SkyrimNet. They only do it while that partner is too far away to overhear.',
+     'ときどき、近くにいる夫・妻・恋人のいるNPCが、あなたに相手への不満をこぼします。台詞は SkyrimNet が作って声に出します。相手に聞こえる距離にいるときは言いません。'),
+    ('$SNSH_ComplaintInterval', 'Time between chances (seconds)', 'きっかけの間隔（秒）'),
+    ('$SNSH_ComplaintIntervalHelp',
+     'How often a chance comes. Each chance, one NPC near you who has a partner out of earshot may complain; when nobody fits, nothing is said.',
+     'きっかけが来る間隔です。そのたびに、相手が聞こえない所にいるNPCが近くにいれば、1人が不満を言います。当てはまる人がいなければ何も言いません。'),
+    ('$SNSH_ComplaintSex', 'Who complains', '不満を言う人'),
+    ('$SNSH_ComplaintSexHelp', 'Which NPCs may complain: anyone, only women, or only men.', '不満を言うNPCの性別です。両方、女性だけ、男性だけから選べます。'),
+    ('$SNSH_SexAnyone', 'Women and men', '女性と男性'),
+    ('$SNSH_SexWomen', 'Women only', '女性だけ'),
+    ('$SNSH_SexMen', 'Men only', '男性だけ'),
+
+    ('$SNSH_HeaderPlayerTalk', 'Your character speaks up', 'プレイヤーの話しかけ'),
+    ('$SNSH_PlayerTalk', 'Speak to people nearby', '近くの人に話しかける'),
+    ('$SNSH_PlayerTalkHelp',
+     'Now and then your character says something to an NPC near you, drawing on what just happened, on what your character remembers (about that person above all) and on how the two of you stand. SkyrimNet writes the line, voices it if it voices your character, and the NPC answers.',
+     'ときどき、あなたのキャラクターが近くのNPCに話しかけます。直前の出来事、あなたのキャラクターの記憶（特にその相手についての記憶）、相手との関係をもとに、SkyrimNet が台詞を作ります。プレイヤーの声が設定されていれば読み上げ、相手のNPCが返事をします。'),
+    ('$SNSH_PlayerTalkInterval', 'Time between chances (seconds)', 'きっかけの間隔（秒）'),
+    ('$SNSH_PlayerTalkIntervalHelp',
+     'How often a chance comes. Nothing is said in combat, in a menu, during a scene or while SkyrimNet is speaking.',
+     'きっかけが来る間隔です。戦闘中、メニューを開いているとき、シーン中、SkyrimNet が話している間は話しかけません。'),
 ]
 
 COLUMNS = {'en': 1, 'ja': 2}

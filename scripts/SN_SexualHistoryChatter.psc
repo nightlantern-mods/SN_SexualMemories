@@ -223,6 +223,10 @@ Function Speak(Int sceneKey, Actor speaker, Actor player)
 	Actor[] actors
 	String facts
 	Int arousal
+	; Whether the scene is forced, dominating or rough, and who is on the receiving end when the
+	; framework says so (SexLab does; OStim does not).
+	Bool forced = False
+	Actor[] passive
 	If sceneKey >= SexLabBase
 		Int slot = sceneKey - SexLabBase
 		actors = SN_SexualHistorySL.PlayingActors(slot)
@@ -232,10 +236,13 @@ Function Speak(Int sceneKey, Actor speaker, Actor player)
 		EndIf
 		facts = SN_SexualHistorySL.NarrationFacts(slot)
 		arousal = SN_SexualHistorySL.Enjoyment(slot, speaker)
+		passive = SN_SexualHistorySL.PassiveActors(slot)
+		forced = passive.Length > 0
 	Else
 		actors = OThread.GetActors(sceneKey)
 		facts = SceneFacts(sceneKey, OThread.GetScene(sceneKey), actors)
 		arousal = OActor.GetExcitement(speaker) as Int
+		forced = OStimForceful(sceneKey, OThread.GetScene(sceneKey))
 	EndIf
 	Actor listener = None
 	If actors.Find(player) >= 0
@@ -243,13 +250,34 @@ Function Speak(Int sceneKey, Actor speaker, Actor player)
 	ElseIf actors.Length > 1
 		listener = actors[(actors.Find(speaker) + 1) % actors.Length]
 	EndIf
-	SkyrimNetApi.DirectNarration(SceneNarration(actors, facts, arousal, speaker, listener, player), speaker, listener)
+	SkyrimNetApi.DirectNarration(SceneNarration(actors, facts, arousal, speaker, listener, player, forced, passive), speaker, listener)
+EndFunction
+
+; OStim has no flag for a forced scene: OStimNet's intent says so when it is installed, and the
+; animation's tags can.
+Bool Function OStimForceful(Int threadID, String sceneId)
+	If Game.IsPluginInstalled(OStimNetPlugin)
+		String intent = SN_SexualHistoryONet.Intent(threadID)
+		If intent == "aggressive" || intent == "dom"
+			Return True
+		EndIf
+	EndIf
+	String[] tags = OMetadata.GetSceneTags(sceneId)
+	Int i = 0
+	While i < tags.Length
+		String tag = tags[i]
+		If tag == "aggressive" || tag == "rough" || tag == "forced" || tag == "noncon" || tag == "rape"
+			Return True
+		EndIf
+		i += 1
+	EndWhile
+	Return False
 EndFunction
 
 ; Narration is taken as something that has already happened and the speaker reacts to it. What is
 ; said is left to the speaker: SkyrimNet gives the LLM the speaker's character profile, memories
 ; and the recent conversation, and the narration only says what is going on right now.
-String Function SceneNarration(Actor[] actors, String facts, Int arousal, Actor speaker, Actor listener, Actor player)
+String Function SceneNarration(Actor[] actors, String facts, Int arousal, Actor speaker, Actor listener, Actor player, 		Bool forced, Actor[] passive)
 	String speakerName = speaker.GetDisplayName()
 	String text
 	If actors.Length == 1
@@ -258,8 +286,23 @@ String Function SceneNarration(Actor[] actors, String facts, Int arousal, Actor 
 		text = NameList(actors) + " are in the middle of an intimate scene together " + Situation(player) + ", and it is still going on. "
 	EndIf
 	text += facts
+	; In a forced scene the one on the receiving end does not want it. Known when the framework
+	; names them; otherwise the speaker's side is left to the character and the actions.
+	Bool speakerPassive = forced && passive.Find(speaker) >= 0
+	Bool speakerForcing = forced && passive.Length > 0 && !speakerPassive
 	If arousal > 0
-		text += speakerName + "'s arousal is at about " + arousal + " out of 100. "
+		If speakerPassive
+			text += speakerName + "'s body is reacting despite " + speakerName + " (arousal about " + arousal + " out of 100), which " + speakerName + " does not want. "
+		Else
+			text += speakerName + "'s arousal is at about " + arousal + " out of 100. "
+		EndIf
+	EndIf
+	If speakerPassive
+		text += "This is being done to " + speakerName + " against " + speakerName + "'s will. The line must show that " + speakerName 			+ " does not want it: reluctance, fear, anger, disgust, shame, pleading or resistance, as fits " + speakerName 			+ ". Never enthusiasm, consent, eagerness or asking for more. At most, " + speakerName 			+ " may admit with dismay or shame that their body is reacting despite themselves. "
+	ElseIf speakerForcing
+		text += speakerName + " is the one forcing this on the others. The line may be domineering or cruel, as fits " + speakerName 			+ ", but it must not make the others sound willing. "
+	ElseIf forced
+		text += "This scene is forced, dominating or rough. If " + speakerName + " is the one it is being done to, judging from " 			+ speakerName + "'s character and the actions, the line must show that " + speakerName 			+ " does not want it (reluctance, fear, anger, shame or resistance), never enthusiasm, consent or asking for more; at most a reluctant admission that their body reacts despite themselves. " 			+ "If " + speakerName + " is the one in control, the line may be domineering, but must not make the others sound willing. "
 	EndIf
 	text += speakerName + " has not said anything about this moment yet. " + speakerName + " now says something out loud"
 	If listener

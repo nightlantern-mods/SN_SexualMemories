@@ -1,11 +1,18 @@
-# SN Sexual Memories 0.2.1
+# SN Sexual Memories 0.3.0
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
+
+> [!IMPORTANT]
+> **This mod keeps adding features that make your world livelier and chattier.** Each of them
+> sends extra requests to your LLM. If things get too busy, or you are watching your LLM costs,
+> turn features off in the MCM. (The memories of the people in a scene are always made: one
+> request per participant when a scene ends.)
 
 Its files keep the name the mod first had, SN Sexual History: the plugin is `SN_SexualHistory.esp`
 and the SKSE plugin `SN_SexualHistory.dll`, so saves and settings carry over.
 
-Every OStim or SexLab scene is remembered and talked about:
+Every OStim or SexLab scene is remembered and talked about, and the people around you have more
+to say:
 
 - **Memories of the scene.** When a scene ends, SkyrimNet's AI writes a memory of it for each
   character who took part, the player included, and stores it as that character's own SkyrimNet
@@ -13,18 +20,29 @@ Every OStim or SexLab scene is remembered and talked about:
 - **A witness remembers too.** One bystander who saw the scene, picked at random among the NPCs
   nearby, gets a memory of what they saw and what they made of it. When nobody saw it, nobody does.
 - **Lines during scenes.** Every so often an NPC in a running scene says a line about what is
-  happening, written and voiced by SkyrimNet. With several NPCs, they take turns.
+  happening, written and voiced by SkyrimNet. With several NPCs, they take turns. In a forced or
+  rough scene, the one it is done to never sounds willing: at most they admit, with dismay, that
+  their body reacts.
+- **Complaints about a partner.** Now and then an NPC near you who has a husband, wife or lover
+  complains to you about them, but only while that partner is out of earshot.
+- **Your character speaks up** (off by default). Now and then your character says something to an
+  NPC nearby, drawing on what just happened, on what your character remembers (about that person
+  above all) and on how the two of you stand. The NPC answers, and the line is shown as a subtitle.
 
 Each participant's memory is written in first person and covers:
 
+- what kind of encounter it was for them, judged by the AI from what happened before and during
+  it, the place and their relationship: loving, casual, a paid job or other deal, a duty,
+  reluctant or forced. Sex is not taken as affection;
 - who took part, where and when;
 - what happened in the scene: the animations played, the acts and who climaxed;
-- what was said and done around it, from SkyrimNet's event history during the scene (the lines
-  spoken during the scene included);
-- how the owner felt, and how the others seemed to feel, drawing on each participant's earlier
-  memories of the others and on their character profile.
+- what was said and done around it, from SkyrimNet's event history just before and during the
+  scene (the lines spoken during the scene included);
+- how the owner felt, and how the others seemed to feel, in keeping with the kind of encounter,
+  their earlier memories of the others and their character profile.
 
-The witness's memory says whom they saw, where, doing what, and how they took it, true to their
+The witness's memory says whom they saw, where, doing what, what they took it to be, and how they
+took it, true to their
 own character and their relationship with those involved. It holds only what an onlooker could
 see or hear.
 
@@ -43,7 +61,7 @@ is lower.
 | [OStim Standalone](https://www.nexusmods.com/skyrimspecialedition/mods/98163) **or** [SexLab](https://www.loverslab.com/files/file/8255-sexlab-framework-se/) (P+ or 1.6x) | One is enough; with both installed, the scenes of both are used. |
 | [SkyUI](https://www.nexusmods.com/skyrimspecialedition/mods/12604) | The settings menu. |
 | [MCM Helper](https://www.nexusmods.com/skyrimspecialedition/mods/53000) | The settings menu. |
-| OStimNet (optional) | When installed, the lines during OStim scenes use its description of the scene, its intent and its phase. |
+| OStimNet (optional) | When installed, the lines during OStim scenes use its description of the scene, its intent and its phase, and the memories its intent. |
 
 ## Installation
 
@@ -64,6 +82,11 @@ the game's `Data` folder.
 | Time between checks (seconds) | 30 | How often running scenes are looked for. Each check lets one NPC speak; nothing is said while SkyrimNet is still speaking. |
 | Also in your own scenes | On | Off: only scenes between NPCs get lines. |
 | Hearing distance | 3000 | Only NPCs within this distance of you speak. |
+| NPCs complain about their partner | On | The complaints. |
+| Time between chances (seconds) | 600 | How often a chance for a complaint comes. |
+| Who complains | Women and men | Or women only, or men only. |
+| Speak to people nearby | Off | Your character speaks up. |
+| Time between chances (seconds) | 900 | How often your character may speak up, from 10 seconds. Nothing is said in combat, in a menu, during a scene or while SkyrimNet is speaking. |
 
 The memories of the participants are always made.
 
@@ -74,8 +97,9 @@ The memories of the participants are always made.
 2. At the start and at every change of animation or stage, until one is found, it looks for a
    witness: a random NPC within reach of the scene who is not in it, not the player, not a child,
    awake, and with a participant in sight.
-3. A few seconds after the scene ends, it reads from SkyrimNet the events recorded during the
-   scene and, for each participant and the witness, their memories that bear most on the others.
+3. A few seconds after the scene ends, it reads from SkyrimNet the events recorded just before
+   and during the scene and, for each participant and the witness, their memories that bear most
+   on the others (how they know each other, money or work between them).
 4. It sends one request per participant to the LLM with the bundled prompt
    `sn_sexual_history_memory`, and one for the witness with `sn_sexual_history_witness`, and stores
    each answer with SkyrimNet as that character's memory. A scene with two people and a witness
@@ -83,6 +107,20 @@ The memories of the participants are always made.
 
 The lines during scenes go through SkyrimNet's direct narration: the narration says what is
 happening, and the speaker's own character, memories and the recent conversation shape the line.
+A scene counts as forced when SexLab marks it as non-consensual or aggressive (it also says who is
+on the receiving end), or for OStim when OStimNet's intent is aggressive or dom or the animation's
+tags say so.
+
+A complaint comes from a random NPC within SkyrimNet's talking distance of you who has a
+relationship at the Lover level (spouses and lovers) with someone other than you, when that
+partner is not loaded or is farther than SkyrimNet's talking distance times its awareness
+multiplier. SkyrimNet's own settings are only read, never changed. SkyrimNet has no whisper mode
+for NPCs, so this distance rule is what keeps the partner from overhearing.
+
+When your character speaks up, the line is written with the bundled prompt
+`sn_sexual_history_player_talk`, spoken with your character's voice when SkyrimNet voices the
+player, shown in the game's dialogue subtitle (when dialogue subtitles are on), and passed to the
+NPC as something your character said, so they answer.
 
 The memories are written in the language of the character profiles and the events, so a game
 played in Japanese gets Japanese memories.
@@ -101,20 +139,23 @@ form.
 ## Changing the prompts
 
 The prompts are a SkyrimNet prompt bundle, `nightlantern-mods.sn-sexual-history`. Copy
-`prompts/sn_sexual_history_memory.prompt` or `prompts/sn_sexual_history_witness.prompt` into your
-SkyrimNet overlay to change how the memories are written, as with any SkyrimNet prompt.
+`prompts/sn_sexual_history_memory.prompt`, `prompts/sn_sexual_history_witness.prompt` or
+`prompts/sn_sexual_history_player_talk.prompt` into your SkyrimNet overlay to change how the
+memories or your character's lines are written, as with any SkyrimNet prompt.
 
 ## Log
 
 `SN_SexualHistory.log` in the SKSE log folder (`Documents\My Games\Skyrim Special Edition\SKSE`)
-records each scene, how many events it found, who witnessed it, and every memory stored, with its
-text.
+records each scene, how many events it found, who witnessed it, every memory stored with its text,
+and every line your character says.
 
 ## Notes and limits
 
 - The memories are made only when the scene ends normally. A scene cut short by loading a save is
   not recorded.
 - SexLab does not say who climaxed, so for SexLab scenes only the number of climaxes is known.
+- Complaints only see relationships the game has a record for; a relationship another mod sets up
+  during play without one may be missed.
 - On SexLab P+ the mod never reads `thread.Animation`, which makes P+ rewrite all its animation
   aliases on every read; it uses the active scene's ID instead.
 
@@ -129,7 +170,7 @@ dashboard if you want them gone.
 |---|---|
 | `src/` | The SKSE plugin (C++23, [CommonLibSSE-NG](https://github.com/alandtse/CommonLibVR/tree/ng)). |
 | `scripts/` | The Papyrus sources. `scripts/stubs/` holds compile-only headers, not shipped: stubs written for this repository that declare only the functions used from OStim, OStimNet, SexLab, SKSE and MCM Helper, and SkyrimNet's MIT-licensed Papyrus API `SkyrimNetApi.psc` (license in `scripts/stubs/LICENSE-SkyrimNetApi.txt`). |
-| `plugin/` | `SN_SexualHistory.esp` as YAML: one quest for the memories, one for the lines and the MCM. |
+| `plugin/` | `SN_SexualHistory.esp` as YAML: one quest each for the memories, the lines and the MCM, the complaints, and your character speaking up. |
 | `mcm/` | The MCM config (`MCM/Config/SN_SexualHistory/`). |
 | `skyrimnet-plugin/` | The SkyrimNet prompt bundle. |
 | `tools/` | `make_strings.py` writes the MCM texts in English or Japanese; `build_fomod.ps1` builds and checks the release installer. |
@@ -142,14 +183,14 @@ laid out in `dist/`. Compile the scripts with the Creation Kit's Papyrus compile
 
 ## Files
 
-- `SN_SexualHistory_0.2.1.zip`: the mod as a FOMOD installer, with the settings menu in English
+- `SN_SexualHistory_0.3.0.zip`: the mod as a FOMOD installer, with the settings menu in English
   or Japanese, and with `THIRD_PARTY_NOTICES.txt` and `COPYING.txt` (see License). Without an
   installer, use `core/<language>/` from the archive.
 
 ## License
 
 The source in this repository is MIT licensed, see [LICENSE](LICENSE), except the two prompts
-below.
+below (`sn_sexual_history_player_talk.prompt` is the mod's own and MIT licensed).
 
 The prompts `sn_sexual_history_memory.prompt` and `sn_sexual_history_witness.prompt`
 (`skyrimnet-plugin/nightlantern-mods.sn-sexual-history/prompts/`) are partly based on SkyrimNet's

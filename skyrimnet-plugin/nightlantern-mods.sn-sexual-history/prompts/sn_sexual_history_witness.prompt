@@ -14,16 +14,19 @@ You are an expert on the Elder Scrolls universe, especially Skyrim. Your task is
 
 {{ render_template("submodules\\system_head\\0010_setting") }}
 
-{{ owner_name }} did not take part in the intimate encounter described below, but was nearby and saw it. Generate {{ owner_name }}'s first-person memory of what they witnessed.
+{{ owner_name }} did not take part in the sexual encounter described below, but was nearby and saw it. Generate {{ owner_name }}'s first-person memory of what they witnessed.
 
 ## You
 {{ render_character_profile("full", formid_to_uuid(owner_form_id)) }}
 
+## First, judge what {{ owner_name }} took it to be
+From what an onlooker could know (the events before and during the scene, the place, what {{ owner_name }} already knows about those involved, and whether it looked forceful), work out what {{ owner_name }} would take this to be: a couple who love each other, a casual fling, a paid job or other deal (a brothel, a client and a worker), a duty, something reluctant, or something forced. Do not assume it was loving: unless the context shows warmth, do not invent any. When it is unclear to an onlooker, say so rather than guessing romance.
+
 ## Instructions
 Write the memory from {{ owner_name }}'s perspective, as an onlooker:
 1. Write in first person, as a recollection (no "last week" etc.).
-2. Say who {{ owner_name }} saw, where, and what they were doing, using their names. Say only what an onlooker could see or hear: no one's private thoughts.
-3. Say how {{ owner_name }} reacted to seeing it and what they now think of those involved, true to {{ owner_name }}'s personality, their relationship with each participant, and the memories listed below. Embarrassment, amusement, disgust, envy, worry, indifference: whatever fits.
+2. Say who {{ owner_name }} saw, where, what they were doing, and what {{ owner_name }} took it to be, using their names. Say only what an onlooker could see or hear: no one's private thoughts.
+3. Say how {{ owner_name }} reacted to seeing it and what they now think of those involved, true to what {{ owner_name }} took it to be, {{ owner_name }}'s personality, their relationship with each participant, and the memories listed below. Embarrassment, amusement, disgust, envy, worry, indifference: whatever fits.
 4. Mention what was said around it when it matters.
 5. Use only what is given. Do not invent events, lines or relationships.
 6. Be frank but not graphic: name what happened plainly, without lurid detail.
@@ -46,7 +49,7 @@ Respond ONLY with a JSON object:
 
 - type: KNOWLEDGE when it is mostly something learned about the others, RELATIONSHIP when it changes how {{ owner_name }} sees one of them, TRAUMA when it was forced or distressing to watch, EXPERIENCE otherwise.
 - importance_score: between 0.8 and 1.0. 0.95-1.0 when it involves someone {{ owner_name }} is close to, or it was forced; 0.85-0.9 when it surprised or shocked {{ owner_name }}; 0.8 otherwise.
-- tags: 5-10 lower-case tags (names, place, acts, themes).
+- tags: 5-10 lower-case tags (names, place, what it was taken to be such as "romance", "casual", "paid", "forced", acts, themes).
 
 [ user ]
 Memory owner (the onlooker): {{ owner_name }}
@@ -66,6 +69,10 @@ What happened ({{ framework }}), in order:
 {% endfor %}{% endif %}
 {% if length(climaxes) > 0 %}Climaxes: {% for c in climaxes %}{{ c }}{% if not loop.is_last %}, {% endif %}{% endfor %}
 {% endif %}
+Events just before the scene (oldest first):
+{% if length(events_before) == 0 %}- (none recorded)
+{% else %}{% for e in events_before %}- {{ e }}
+{% endfor %}{% endif %}
 Events recorded during the scene (oldest first):
 {% if length(events) == 0 %}- (none)
 {% else %}{% for e in events %}- {{ e }}

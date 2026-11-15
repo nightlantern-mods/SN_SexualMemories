@@ -7,23 +7,33 @@
    The answer becomes that participant's SkyrimNet memory of the scene.
    Context: owner_name, owner_form_id, framework, location, game_date, real_minutes,
    participants (list of {name, form_id, is_player, is_owner, memories}), scene_details (list),
-   climaxes (list of names), events (list of "Name -> Target (type): text", oldest first). #}
-You are an expert on the Elder Scrolls universe, especially Skyrim. Your task is to turn an intimate encounter into a coherent first-person memory for a character within the game.
+   climaxes (list of names), events_before (the last events before the scene) and events (those
+   recorded while it ran), each a list of "Name -> Target (type): text", oldest first. #}
+You are an expert on the Elder Scrolls universe, especially Skyrim. Your task is to turn a sexual encounter into a coherent first-person memory for a character within the game, true to what the encounter really was for them.
 
 {{ render_template("submodules\\system_head\\0010_setting") }}
 
-Generate a first-person memory for {{ owner_name }} of the intimate encounter described below.
+Generate a first-person memory for {{ owner_name }} of the sexual encounter described below.
 
 ## You
 {{ render_character_profile("full", formid_to_uuid(owner_form_id)) }}
 
+## First, judge what this encounter was
+Before writing, work out from everything given what kind of encounter this was for {{ owner_name }}:
+- the events before the scene (how it came about: an invitation, a seduction, a price agreed, an order, a threat, a dare, a celebration...);
+- the events and lines during it, and the OStimNet intent when the scene details give one;
+- the participants' relationship, character profiles and memories of each other (spouses, lovers, strangers, client and worker, master and servant, captor and captive...);
+- the place (a home, an inn, a brothel, a camp...) and any money, favour or deal involved;
+- whether it was forceful or one-sided.
+Then place it plainly: loving, between partners who care for each other; a casual or curious fling; a paid job or other transaction; a duty or an obligation; reluctant; or forced. Sex is not affection: unless the context shows love or warmth, do not invent any. A worker with a client may feel only professional distance, boredom or relief that it is over; someone pressured or forced feels nothing like tenderness. When the context is unclear, keep the feelings modest rather than romantic.
+
 ## Instructions
 Write the memory from {{ owner_name }}'s perspective:
 1. Write in first person, as a recollection (no "last week" etc.).
-2. Say who took part, where, and what happened between them, using their names.
-3. Say how {{ owner_name }} felt during and after it, and how the others seemed to feel, judging from what they said and did and from the memories listed for them. Stay true to {{ owner_name }}'s personality and to how they already feel about the others.
-4. Mention what was said or done around the encounter when it matters (how it began, promises, quarrels, what came after).
-5. Use only what is given. Do not invent events, lines or relationships.
+2. Say plainly what kind of encounter it was (for example "a paying customer", "my wife", "a stranger I barely knew"), who took part, where, and what happened between them, using their names.
+3. Say how {{ owner_name }} felt during and after it, and how the others seemed to feel, judging from what they said and did. The feelings must fit the kind of encounter you judged above, {{ owner_name }}'s personality and how they already feel about the others.
+4. Mention what was said or done around the encounter when it matters (how it began, payment, promises, quarrels, what came after).
+5. Use only what is given. Do not invent events, lines, feelings or relationships.
 6. Be frank but not graphic: name what happened plainly, without lurid detail.
 7. 3-6 dense sentences. Use concrete, searchable terms (names, places, actions).
 8. Write in the same language as the character profile and the events.
@@ -33,18 +43,19 @@ Respond ONLY with a JSON object:
 {% raw %}
 ```json
 {
-  "content": "First-person memory, 3-6 sentences: who, where, what happened, how I and the others felt.",
-  "emotion": "joyful|content|neutral|concerned|fearful|angry|disgusted|surprised|sad|traumatized",
+  "content": "First-person memory, 3-6 sentences: what kind of encounter it was, who, where, what happened, how I and the others felt.",
+  "emotion": "joyful|content|neutral|indifferent|bored|uneasy|ashamed|concerned|fearful|angry|disgusted|surprised|sad|traumatized",
   "importance_score": 0.8-1.0,
-  "tags": ["name", "location", "action", "theme"],
+  "tags": ["name", "location", "kind of encounter", "action", "theme"],
   "type": "RELATIONSHIP|JOY|TRAUMA|EXPERIENCE"
 }
 ```
 {% endraw %}
 
-- type: RELATIONSHIP when it changed or confirmed a bond, JOY when it was mainly a happy experience, TRAUMA when it was forced or distressing for {{ owner_name }}, EXPERIENCE otherwise.
-- importance_score: between 0.8 and 1.0; an intimate encounter is never a minor memory. 0.95-1.0 for a first time, a forced encounter, or one that changes a relationship; 0.85-0.9 for a meaningful one; 0.8 for a routine one between established partners.
-- tags: 5-10 lower-case tags (names, place, acts, themes).
+- emotion: the one that fits the kind of encounter; "joyful" or "content" only when the context shows it was welcome.
+- type: RELATIONSHIP when it changed or confirmed a bond between people who matter to each other, JOY when it was mainly a happy experience, TRAUMA when it was forced or distressing for {{ owner_name }}, EXPERIENCE otherwise (a transaction, a duty or a casual encounter is usually EXPERIENCE).
+- importance_score: between 0.8 and 1.0; such an encounter is never a minor memory. 0.95-1.0 for a first time, a forced encounter, or one that changes a relationship; 0.85-0.9 for a meaningful one; 0.8 for a routine one, including routine work.
+- tags: 5-10 lower-case tags (names, place, the kind of encounter such as "romance", "casual", "paid", "duty", "forced", acts, themes).
 
 [ user ]
 Memory owner: {{ owner_name }}
@@ -63,6 +74,10 @@ What the scene showed ({{ framework }}), in order:
 {% endfor %}{% endif %}
 {% if length(climaxes) > 0 %}Climaxes: {% for c in climaxes %}{{ c }}{% if not loop.is_last %}, {% endif %}{% endfor %}
 {% endif %}
+Events just before the scene (oldest first):
+{% if length(events_before) == 0 %}- (none recorded)
+{% else %}{% for e in events_before %}- {{ e }}
+{% endfor %}{% endif %}
 Events recorded during the scene (oldest first):
 {% if length(events) == 0 %}- (none)
 {% else %}{% for e in events %}- {{ e }}
