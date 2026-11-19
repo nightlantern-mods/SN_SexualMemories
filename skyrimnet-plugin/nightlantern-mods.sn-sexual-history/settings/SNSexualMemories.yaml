@@ -1,0 +1,29 @@
+# SN Sexual Memories - settings schema. The filename names the config (Plugin_SNSexualMemories).
+# The variant lets the relationship map use its own model; set it in SkyrimNet's plugin settings.
+# Without an override it uses SkyrimNet's base model.
+plugin:
+  name: SNSexualMemories
+  version: "0.4.0"
+  description: "SN Sexual Memories: scene memories, lines during scenes, complaints, your character speaking up, and the relationship map."
+
+variants:
+  - name: sn_sexual_memories_relmap
+    description: "Draws the relationship map: one request per person around the centre (what happened between them and how they feel, from their memories and events), then one for the summary. Answers in JSON; a model that follows JSON instructions well is best."
+
+schema:
+  fields:
+    - name: "Model Name"
+      path: "llm.model_name"
+      type: "string"
+      description: "Model for the relationship map. Leave empty to inherit SkyrimNet's base model."
+      defaultValue: ""
+      category: "LLM Overrides"
+
+    - name: "Max Tokens"
+      path: "llm.max_tokens"
+      type: "int"
+      description: "Longest answer the model may give for one person of the map. Too low and the description is cut off. Set 0 to inherit SkyrimNet's base value."
+      defaultValue: 2048
+      min: 0
+      max: 16384
+      category: "LLM Overrides"

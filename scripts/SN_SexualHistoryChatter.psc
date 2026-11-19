@@ -37,11 +37,45 @@ Function Setup()
 		spoken = new Actor[32]
 		spokenCount = 0
 	EndIf
+	RegisterMapKey()
+	PushMapSettings()
 EndFunction
 
 Event OnSettingChange(String a_ID)
 	If a_ID == "iInterval:General" || a_ID == "bComments:General"
 		(GetAlias(0) as SN_SexualHistoryChatterPlayer).ScheduleCheck()
+	ElseIf a_ID == "iMapKey:General"
+		RegisterMapKey()
+	ElseIf StringUtil.Find(a_ID, "iMap") == 0
+		PushMapSettings()
+	EndIf
+EndEvent
+
+; ---------------------------------------------------------------------------------------------
+; The relationship map's hotkey
+; ---------------------------------------------------------------------------------------------
+
+; How far back the relationship map reads (memories, events, diaries, the length of each passage).
+Function PushMapSettings()
+	SN_SexualHistoryNative.SetMapSettings(GetModSettingInt("iMapMemoryScan:General"), GetModSettingInt("iMapMemoriesUsed:General"), \
+		GetModSettingInt("iMapEventScan:General"), GetModSettingInt("iMapDiaryScan:General"), GetModSettingInt("iMapTextChars:General"))
+EndFunction
+
+Function RegisterMapKey()
+	UnregisterForAllKeys()
+	Int mapKey = GetModSettingInt("iMapKey:General")
+	If mapKey > 0
+		RegisterForKey(mapKey)
+	EndIf
+EndFunction
+
+; Opens the relationship map, with the NPC under the crosshair chosen when there is one.
+Event OnKeyDown(Int keyCode)
+	If keyCode != GetModSettingInt("iMapKey:General") || Utility.IsInMenuMode() || UI.IsTextInputEnabled()
+		Return
+	EndIf
+	If !SN_SexualHistoryNative.OpenRelationshipMap(Game.GetCurrentCrosshairRef() as Actor)
+		Debug.Notification("$SNSH_MapNoUI")
 	EndIf
 EndEvent
 

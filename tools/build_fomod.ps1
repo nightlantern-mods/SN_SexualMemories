@@ -51,7 +51,8 @@ foreach ($l in $languages) {
     New-Item -ItemType Directory "$dir\Source\Scripts" | Out-Null
     Copy-Item "$Sources\*.psc" "$dir\Source\Scripts"
     if ($l.code -ne 'en') {
-        Copy-Item "$root\translations\$($l.code)\Interface\Translations\*" "$dir\Interface\Translations" -Force
+        # the MCM texts and the relationship map's texts (strings.json) of that language
+        Copy-Item "$root\translations\$($l.code)\*" $dir -Recurse -Force
     }
 }
 
@@ -70,7 +71,7 @@ $info = @"
   <Author>nightlantern-mods</Author>
   <Version>$Version</Version>
   <Website>https://github.com/nightlantern-mods/SN_SexualMemories</Website>
-  <Description>Adult content. A SkyrimNet add-on for OStim or SexLab: every scene becomes a memory for each character who took part, and NPCs in a scene speak about it. Choose the language of the settings menu.</Description>
+  <Description>Adult content. A SkyrimNet add-on for OStim or SexLab: every scene becomes a memory for each character who took part, NPCs speak about it, and a relationship map shows what lies between people (with Magelight UI or Prisma UI). Choose the language of the settings menu.</Description>
   <Groups>
     <element>Gameplay</element>
   </Groups>
@@ -170,7 +171,7 @@ try {
         $files = @($entries.Keys | Where-Object { $_.StartsWith("$source/") } | ForEach-Object { $_.Substring($source.Length + 1) })
         if ($files.Count -eq 0) { $problems.Add("$source : no files in the archive") }
         $sets[$flag] = $files
-        foreach ($need in "SKSE/Plugins/$name.dll", "$name.esp", 'COPYING.txt', 'THIRD_PARTY_NOTICES.txt', "MCM/Config/$name/config.json", "MCM/Config/$name/settings.ini", 'Scripts/SN_SexualHistory.pex', 'Scripts/SN_SexualHistoryChatter.pex', 'SKSE/Plugins/SkyrimNet/external/nightlantern-mods.sn-sexual-history/prompts/sn_sexual_history_memory.prompt') {
+        foreach ($need in "SKSE/Plugins/$name.dll", "$name.esp", 'COPYING.txt', 'THIRD_PARTY_NOTICES.txt', "MCM/Config/$name/config.json", "MCM/Config/$name/settings.ini", 'Scripts/SN_SexualHistory.pex', 'Scripts/SN_SexualHistoryChatter.pex', 'SKSE/Plugins/SN_SexualHistory/strings.json', 'PrismaUI/views/SN_SexualHistory/index.html', 'Magelight/SN_SexualHistory/views/index.html', 'SKSE/Plugins/SkyrimNet/external/nightlantern-mods.sn-sexual-history/settings/SNSexualMemories.yaml', 'SKSE/Plugins/SkyrimNet/external/nightlantern-mods.sn-sexual-history/prompts/sn_sexual_history_memory.prompt') {
             if ($need -notin $files) { $problems.Add("$source : missing $need") }
         }
         foreach ($g in $gameLanguages) {

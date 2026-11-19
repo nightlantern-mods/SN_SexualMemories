@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SN Sexual Memories - Relationship map</title>
+<!-- The relationship map of SN Sexual Memories, drawn by Magelight UI or Prisma UI. The plugin
+     calls window.snsm.open / showLoading / showMap / showError / escape; the page answers through
+     window.snsmPick(id), window.snsmRefresh(id), window.snsmEnglish(id) and window.snsmClose();
+     window.snsm.setFace({id, file, v}) brings a face drawn by Phantasm, when it is installed. Opened in a plain
+     browser, it shows a sample. -->
+<style>
+    :root {
+        --bg: rgba(10, 8, 6, 0.86);
+        --panel: rgba(28, 22, 16, 0.96);
+        --line: #5b4a35;
+        --text: #eadbc2;
+        --muted: #a8977c;
+        --accent: #d9b56c;
+        --positive: #79c27a;
+        --negative: #d9614f;
+        --mixed: #b07ad9;
+        --neutral: #9c968c;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: transparent; font-family: "Segoe UI", "Yu Gothic UI", "Meiryo", sans-serif; color: var(--text); overflow: hidden; }
+    #shade { position: fixed; inset: 0; background: var(--bg); display: none; }
+    #shade.open { display: block; }
+    #frame { position: absolute; left: 4vw; top: 5vh; width: 92vw; height: 90vh; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; display: grid; grid-template-rows: auto 1fr; grid-template-columns: 13vw 1fr 48vw; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+    header { grid-column: 1 / 4; display: flex; align-items: center; gap: 1.2vw; padding: 1.2vh 1.4vw; border-bottom: 1px solid var(--line); }
+    header h1 { margin: 0; font-size: 2.6vh; font-weight: 600; color: var(--accent); letter-spacing: 0.05em; }
+    #center-name { font-size: 2.2vh; }
+    #generated { color: var(--muted); font-size: 1.6vh; }
+    header .spacer { flex: 1; }
+    button { background: #3a2e20; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 0.7vh 1.1vw; font-size: 1.7vh; cursor: pointer; }
+    button:hover { background: #4d3d29; border-color: var(--accent); }
+    button:disabled { opacity: 0.4; cursor: default; }
+    #people { border-right: 1px solid var(--line); overflow-y: auto; padding: 1vh 0.6vw; }
+    #people .item { padding: 0.8vh 0.7vw; border-radius: 4px; cursor: pointer; font-size: 1.8vh; }
+    #people .item:hover { background: #3a2e20; }
+    #people .item.selected { background: #5a4528; color: #fff3d8; }
+    #people .item .you { color: var(--accent); font-size: 1.4vh; margin-left: 0.4vw; }
+    #stage { position: relative; overflow: hidden; }
+    #map { width: 100%; height: 100%; }
+    #message { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 3vw; font-size: 2.1vh; color: var(--muted); pointer-events: none; }
+    .spinner { width: 4vh; height: 4vh; border: 0.5vh solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1.5vh; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #side { border-left: 1px solid var(--line); overflow-y: auto; padding: 1.5vh 1.2vw; font-size: 1.75vh; line-height: 1.5; }
+    #side h2 { margin: 0 0 0.6vh; font-size: 2.1vh; color: var(--accent); }
+    #side .role { color: var(--muted); margin-bottom: 1vh; }
+    #side .link { margin: 0.9vh 0; padding-left: 0.6vw; border-left: 3px solid var(--neutral); }
+    #side .link b { font-weight: 600; }
+    #side h3 { margin: 1.4vh 0 0.4vh; font-size: 1.8vh; color: var(--accent); font-weight: 600; }
+    #side ul { margin: 0.3vh 0; padding-left: 1.2vw; }
+    #side li { margin: 0.4vh 0; }
+    #side .badge { display: inline-block; font-size: 1.4vh; color: var(--accent); border: 1px solid var(--line); border-radius: 3px; padding: 0 0.4vw; margin-left: 0.4vw; }
+    #side button { margin-top: 1.2vh; }
+    #side .intro { margin-bottom: 1.8vh; }
+    .card { border: 1px solid var(--line); border-left: 5px solid var(--neutral); border-radius: 5px; padding: 1.2vh 1vw; margin: 0 0 1.4vh; background: rgba(40, 31, 22, 0.7); }
+    .card.chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .card .head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6vw; margin-bottom: 0.6vh; }
+    .card .face { width: 6.5vh; height: 6.5vh; border-radius: 50%; object-fit: cover; background: #4d3d29; border: 2px solid var(--line); }
+    .card .name { font-size: 2.1vh; font-weight: 600; color: #fff3d8; }
+    .card .rolebadge { font-size: 1.55vh; border-radius: 3px; padding: 0.1vh 0.5vw; color: #1a140e; font-weight: 600; }
+    .card .tone { font-size: 1.45vh; color: var(--muted); }
+    .card .text { margin: 0.4vh 0; }
+    .card button { margin-top: 0.8vh; font-size: 1.5vh; padding: 0.4vh 0.8vw; }
+    .node circle { stroke: #1a140e; stroke-width: 2; cursor: pointer; }
+    .node text { fill: var(--text); text-anchor: middle; pointer-events: none; }
+    .node .role { fill: var(--muted); }
+    .node.center circle { fill: #8a6a33; }
+    .node.other circle { fill: #4d3d29; }
+    .node.chosen circle { stroke: var(--accent); stroke-width: 3; }
+    .edge { fill: none; stroke-linecap: round; }
+    .edge-label { fill: var(--text); font-size: 11px; text-anchor: middle; paint-order: stroke; stroke: rgba(20,16,11,0.9); stroke-width: 3px; }
+</style>
+</head>
+<body>
+<div id="shade">
+    <div id="frame">
+        <header>
+            <h1 id="title">Relationship map</h1>
+            <span id="center-name"></span>
+            <span id="generated"></span>
+            <span class="spacer"></span>
+            <button id="refresh" disabled>Refresh</button>
+            <button id="english" disabled style="display:none"></button>
+            <button id="close">Close</button>
+        </header>
+        <div id="people"></div>
+        <div id="stage">
+            <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div id="message"></div>
+        </div>
+        <div id="side"></div>
+    </div>
+</div>
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const SVG = "http://www.w3.org/2000/svg";
+    const DEFAULT_STRINGS = {
+        title: "Relationship map",
+        you: "you",
+        refresh: "Refresh",
+        english: "",
+        close: "Close",
+        choose: "Choose a person on the left.",
+        loading: "The AI is drawing the relationship map of {name}. This can take a minute.",
+        generated: "Made {date}",
+        makeCenter: "Put {name} in the centre",
+        circle: "Their circle",
+        feelings: "Feelings",
+        history: "What they went through",
+        follower: "follower",
+        links: "{name} and the others in the circle",
+        noLinks: "No ties drawn.",
+        noRecord: "Little about the two of them was found in the records read. That does not mean there is nothing between them.",
+        error_ai: "The AI could not draw the map. Try Refresh, or check the model in SkyrimNet's plugin settings.",
+        error_skyrimnet: "SkyrimNet is not ready yet. Load a save first.",
+        error_nobody: "There is nobody near you to put on the map.",
+        error_busy: "Another map is still being drawn. Wait a moment.",
+        tone_positive: "warm",
+        tone_negative: "hostile",
+        tone_mixed: "mixed",
+        tone_neutral: "neutral"
+    };
+    let S = Object.assign({}, DEFAULT_STRINGS);
+    let people = [];      // the list on the left: {id, name, player}
+    let selected = "";    // hex id of the centre being shown or drawn
+    let map = null;       // the map on screen
+    let chosenKey = "";   // the node shown on the right
+    let faces = {};       // hex id -> picture address, drawn by Phantasm
+
+    function t(key, vars) {
+        let text = S[key] || DEFAULT_STRINGS[key] || key;
+        for (const k in (vars || {})) {
+            text = text.split("{" + k + "}").join(vars[k]);
+        }
+        return text;
+    }
+
+    function send(name, arg) {
+        if (typeof window[name] === "function") {
+            window[name](arg);
+        } else {
+            console.log(name, arg);
+        }
+    }
+
+    function hex(id) {
+        return (Number(id) >>> 0).toString(16).toUpperCase().padStart(8, "0");
+    }
+
+    function escapeHtml(text) {
+        return String(text || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    }
+
+    function toneColor(tone) {
+        return getComputedStyle(document.documentElement).getPropertyValue("--" + (tone || "neutral")).trim() || "#9c968c";
+    }
+
+    function applyStrings() {
+        $("title").textContent = t("title");
+        $("refresh").textContent = t("refresh");
+        $("english").textContent = S.english || "";
+        $("english").style.display = S.english ? "" : "none";
+        $("close").textContent = t("close");
+    }
+
+    function renderPeople() {
+        const list = $("people");
+        list.innerHTML = "";
+        for (const person of people) {
+            const item = document.createElement("div");
+            item.className = "item" + (person.id === selected ? " selected" : "");
+            item.innerHTML = escapeHtml(person.name) + (person.player ? '<span class="you">(' + escapeHtml(t("you")) + ")</span>" : "");
+            item.onclick = () => pick(person.id);
+            list.appendChild(item);
+        }
+    }
+
+    function setMessage(html) {
+        $("message").innerHTML = html || "";
+    }
+
+    function clearMap() {
+        $("map").innerHTML = "";
+        $("side").innerHTML = "";
+        $("center-name").textContent = "";
+        $("generated").textContent = "";
+        map = null;
+    }
+
+    function pick(id) {
+        selected = id;
+        renderPeople();
+        clearMap();
+        setButtons(false);
+        send("snsmPick", id);
+    }
+
+    function setButtons(enabled) {
+        $("refresh").disabled = !enabled;
+        $("english").disabled = !enabled;
+    }
+
+    // Lays the centre in the middle and the others on a circle, then draws the ties.
+    function drawMap() {
+        const svg = $("map");
+        svg.innerHTML = "";
+        const defs = document.createElementNS(SVG, "defs");
+        svg.appendChild(defs);
+        const box = svg.getBoundingClientRect();
+        const w = box.width || 900, h = box.height || 600;
+        svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+        const cx = w / 2, cy = h / 2;
+        const others = map.people.filter((p) => p.key !== "c");
+        const radius = Math.min(w, h) * 0.36;
+        const pos = { c: { x: cx, y: cy } };
+        others.forEach((p, i) => {
+            const angle = -Math.PI / 2 + (2 * Math.PI * i) / Math.max(others.length, 1);
+            pos[p.key] = { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+        });
+        const fontSize = Math.max(11, Math.min(15, h / 45));
+        const edges = document.createElementNS(SVG, "g");
+        const labels = document.createElementNS(SVG, "g");
+        for (const link of map.links) {
+            const a = pos[link.a], b = pos[link.b];
+            if (!a || !b) {
+                continue;
+            }
+            const viaCenter = link.a === "c" || link.b === "c";
+            // Ties between two others bend away from the centre, so they do not cross it.
+            const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+            let qx = mx, qy = my;
+            if (!viaCenter) {
+                const dx = mx - cx, dy = my - cy, d = Math.hypot(dx, dy) || 1;
+                qx = mx + (dx / d) * radius * 0.25;
+                qy = my + (dy / d) * radius * 0.25;
+            }
+            const path = document.createElementNS(SVG, "path");
+            path.setAttribute("d", "M" + a.x + "," + a.y + " Q" + qx + "," + qy + " " + b.x + "," + b.y);
+            path.setAttribute("class", "edge");
+            path.setAttribute("stroke", toneColor(link.tone));
+            path.setAttribute("stroke-width", 1 + link.strength * 1.6);
+            path.setAttribute("opacity", viaCenter ? 0.9 : 0.6);
+            edges.appendChild(path);
+        }
+        svg.appendChild(edges);
+        svg.appendChild(labels);
+        for (const person of map.people) {
+            const p = pos[person.key];
+            if (!p) {
+                continue;
+            }
+            const g = document.createElementNS(SVG, "g");
+            g.setAttribute("class", "node " + (person.key === "c" ? "center" : "other") + (person.key === chosenKey ? " chosen" : ""));
+            const r = person.key === "c" ? Math.min(w, h) * 0.06 : Math.min(w, h) * 0.04;
+            const circle = document.createElementNS(SVG, "circle");
+            circle.setAttribute("cx", p.x);
+            circle.setAttribute("cy", p.y);
+            circle.setAttribute("r", r);
+            circle.addEventListener("click", () => focusCard(person.key));
+            g.appendChild(circle);
+            const face = faces[hex(person.id)];
+            if (face) {
+                const clip = document.createElementNS(SVG, "clipPath");
+                clip.setAttribute("id", "face-" + person.key);
+                const round = document.createElementNS(SVG, "circle");
+                round.setAttribute("cx", p.x);
+                round.setAttribute("cy", p.y);
+                round.setAttribute("r", r - 1);
+                clip.appendChild(round);
+                defs.appendChild(clip);
+                const image = document.createElementNS(SVG, "image");
+                image.setAttribute("href", face);
+                image.setAttribute("x", p.x - r);
+                image.setAttribute("y", p.y - r);
+                image.setAttribute("width", r * 2);
+                image.setAttribute("height", r * 2);
+                image.setAttribute("preserveAspectRatio", "xMidYMid slice");
+                image.setAttribute("clip-path", "url(#face-" + person.key + ")");
+                image.style.pointerEvents = "none";
+                g.appendChild(image);
+            }
+            const name = document.createElementNS(SVG, "text");
+            name.setAttribute("x", p.x);
+            name.setAttribute("y", p.y + r + fontSize + 2);
+            name.setAttribute("font-size", fontSize);
+            name.textContent = person.name;
+            g.appendChild(name);
+            if (person.role && person.key !== "c") {
+                const role = document.createElementNS(SVG, "text");
+                role.setAttribute("x", p.x);
+                role.setAttribute("y", p.y + r + fontSize * 2 + 4);
+                role.setAttribute("font-size", fontSize * 0.85);
+                role.setAttribute("class", "role");
+                role.textContent = person.role;
+                g.appendChild(role);
+            }
+            svg.appendChild(g);
+        }
+    }
+
+    function nameOf(key) {
+        const person = map.people.find((p) => p.key === key);
+        return person ? person.name : key;
+    }
+
+    // The text is the heart of the map: the circle's summary, then a card for every person,
+    // strongest ties first.
+    function renderCards() {
+        const side = $("side");
+        side.innerHTML = "";
+        const intro = document.createElement("div");
+        intro.className = "intro";
+        intro.innerHTML = "<h2>" + escapeHtml(t("circle")) + "</h2><div>" + escapeHtml(map.summary) + "</div>";
+        side.appendChild(intro);
+        const strength = (key) => {
+            const link = map.links.find((l) => (l.a === "c" && l.b === key) || (l.b === "c" && l.a === key));
+            return link ? link.strength : 0;
+        };
+        const others = map.people.filter((p) => p.key !== "c").sort((a, b) => strength(b.key) - strength(a.key));
+        for (const person of others) {
+            const card = document.createElement("div");
+            card.className = "card" + (person.key === chosenKey ? " chosen" : "");
+            card.id = "card-" + person.key;
+            card.style.borderLeftColor = toneColor(person.tone);
+            const face = faces[hex(person.id)];
+            let html = '<div class="head"><img class="face" data-face="' + hex(person.id) + '"' +
+                (face ? ' src="' + escapeHtml(face) + '"' : ' style="display:none"') + '><span class="name">' + escapeHtml(person.name) + "</span>";
+            if (person.role) {
+                html += '<span class="rolebadge" style="background:' + toneColor(person.tone) + '">' + escapeHtml(person.role) + "</span>";
+            }
+            html += '<span class="tone">' + escapeHtml(t("tone_" + (person.tone || "neutral"))) + "</span>";
+            if (person.follower) {
+                html += '<span class="badge">' + escapeHtml(t("follower")) + "</span>";
+            }
+            html += "</div>";
+            html += '<div class="text">' + escapeHtml(person.summary || t("noRecord")) + "</div>";
+            if (person.feelings) {
+                html += "<h3>" + escapeHtml(t("feelings")) + '</h3><div class="text">' + escapeHtml(person.feelings) + "</div>";
+            }
+            if (person.history && person.history.length) {
+                html += "<h3>" + escapeHtml(t("history")) + "</h3><ul>" + person.history.map((h) => "<li>" + escapeHtml(h) + "</li>").join("") + "</ul>";
+            }
+            const ties = map.links.filter((l) => l.a !== "c" && l.b !== "c" && (l.a === person.key || l.b === person.key));
+            if (ties.length) {
+                html += "<h3>" + escapeHtml(t("links", { name: person.name })) + "</h3><ul>" + ties.map((l) => "<li>" + escapeHtml(nameOf(l.a === person.key ? l.b : l.a)) +
+                    (l.label ? ": " + escapeHtml(l.label) : "") + "</li>").join("") + "</ul>";
+            }
+            card.innerHTML = html;
+            const button = document.createElement("button");
+            button.textContent = t("makeCenter", { name: person.name });
+            button.onclick = () => {
+                const id = hex(person.id);
+                if (!people.some((p) => p.id === id)) {
+                    people.push({ id: id, name: person.name, player: false });
+                }
+                pick(id);
+            };
+            card.appendChild(button);
+            card.addEventListener("click", (e) => { if (e.target !== button) { focusCard(person.key, true); } });
+            side.appendChild(card);
+        }
+        drawMap();
+    }
+
+    // Marks a person on the map and in the cards, and brings their card into view.
+    function focusCard(key, fromCard) {
+        chosenKey = key === "c" ? "" : key;
+        document.querySelectorAll(".card").forEach((c) => c.classList.toggle("chosen", c.id === "card-" + chosenKey));
+        drawMap();
+        const card = $("card-" + chosenKey);
+        if (card && !fromCard) {
+            card.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (!chosenKey) {
+            $("side").scrollTop = 0;
+        }
+    }
+
+    window.snsm = {
+        // {people: [{id, name, player}], selected: id, strings: {...}}
+        open(data) {
+            S = Object.assign({}, DEFAULT_STRINGS, (data && data.strings) || {});
+            applyStrings();
+            people = (data && data.people) || [];
+            $("shade").classList.add("open");
+            clearMap();
+            setMessage(escapeHtml(t("choose")));
+            if (data && data.selected) {
+                pick(data.selected);
+            } else {
+                renderPeople();
+            }
+        },
+        showLoading(name) {
+            clearMap();
+            setMessage('<div><div class="spinner"></div>' + escapeHtml(t("loading", { name: name })) + "</div>");
+        },
+        showMap(data) {
+            if (!data || hex(data.center) !== selected) {
+                return;   // a map for someone else arrived late
+            }
+            map = data;
+            setMessage("");
+            const center = map.people.find((p) => p.key === "c");
+            $("center-name").textContent = center ? center.name : "";
+            $("generated").textContent = map.generated ? t("generated", { date: map.generated }) : "";
+            setButtons(true);
+            chosenKey = "";
+            renderCards();
+        },
+        // {id: hex, file, v}: a face drawn by Phantasm, shown on the map and the card.
+        setFace(data) {
+            if (!data || !data.id || !data.file) {
+                return;
+            }
+            faces[data.id] = data.file + "?v=" + (data.v || 0);
+            if (map) {
+                drawMap();
+                document.querySelectorAll('img[data-face="' + data.id + '"]').forEach((img) => {
+                    img.src = faces[data.id];
+                    img.style.display = "";
+                });
+            }
+        },
+        showError(code) {
+            setButtons(!!selected);
+            setMessage(escapeHtml(t("error_" + code)));
+        },
+        escape() {
+            if (chosenKey) {
+                focusCard("c");
+            } else {
+                close();
+            }
+        }
+    };
+
+    function close() {
+        $("shade").classList.remove("open");
+        send("snsmClose", "");
+    }
+
+    $("refresh").onclick = () => {
+        if (selected) {
+            setButtons(false);
+            send("snsmRefresh", selected);
+        }
+    };
+    $("english").onclick = () => {
+        if (selected) {
+            setButtons(false);
+            send("snsmEnglish", selected);
+        }
+    };
+    $("close").onclick = close;
+    window.addEventListener("resize", () => { if (map) { drawMap(); } });
+    let lastEscape = 0;
+    document.addEventListener("keydown", (e) => {
+        if ((e.key === "Escape" || e.key === "Esc" || e.keyCode === 27) && Date.now() - lastEscape > 300) {
+            lastEscape = Date.now();
+            window.snsm.escape();
+        }
+    });
+
+    // In a plain browser: a sample, so the page can be looked at without the game.
+    if (typeof window.snsmPick !== "function" && location.protocol === "file:") {
+        window.snsmPick = () => setTimeout(() => window.snsm.showMap({
+            center: 0x14, generated: "Morndas, 17th of Last Seed",
+            summary: "A sample circle.",
+            people: [
+                { key: "c", id: 0x14, name: "Krista", role: "", summary: "" },
+                { key: "p1", id: 1, name: "Faendal", role: "admirer", tone: "positive", summary: "Sends gifts.", feelings: "He likes her.", history: ["Met in Riverwood."] },
+                { key: "p2", id: 2, name: "Camilla", role: "rival", tone: "negative", summary: "Jealous.", feelings: "", history: [] },
+                { key: "p3", id: 3, name: "Lucan", role: "employer", tone: "neutral", summary: "Pays well.", feelings: "", history: [] }
+            ],
+            links: [
+                { a: "c", b: "p1", label: "admirer", tone: "positive", strength: 2, note: "He likes her." },
+                { a: "c", b: "p2", label: "rival", tone: "negative", strength: 3, note: "They quarrel." },
+                { a: "c", b: "p3", label: "employer", tone: "neutral", strength: 1, note: "Work." },
+                { a: "p1", b: "p2", label: "unrequited", tone: "mixed", strength: 2, note: "He loves her, she does not." }
+            ]
+        }), 300);
+        window.snsm.open({ people: [{ id: "00000014", name: "Krista", player: true }, { id: "00000001", name: "Faendal", player: false }], selected: "00000014" });
+    }
+})();
+</script>
+</body>
+</html>

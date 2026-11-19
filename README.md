@@ -1,4 +1,4 @@
-# SN Sexual Memories 0.3.0
+# SN Sexual Memories 0.4.0
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
 
@@ -28,6 +28,12 @@ to say:
 - **Your character speaks up** (off by default). Now and then your character says something to an
   NPC nearby, drawing on what just happened, on what your character remembers (about that person
   above all) and on how the two of you stand. The NPC answers, and the line is shown as a subtitle.
+- **Relationship map** (needs Magelight UI or Prisma UI). Press a key (Y by default) to open it,
+  choose yourself or an NPC nearby, and SkyrimNet's AI writes what lies between them and up to ten
+  people around you: what happened between them, in order, how each feels about the other, the key
+  events, and how the others are tied to each other. It reads both sides' memories, their diaries
+  and SkyrimNet's events, and writes only what those records say. A button remakes the map in
+  English. With Phantasm installed, everyone's face is shown on the map.
 
 Each participant's memory is written in first person and covers:
 
@@ -62,6 +68,8 @@ is lower.
 | [SkyUI](https://www.nexusmods.com/skyrimspecialedition/mods/12604) | The settings menu. |
 | [MCM Helper](https://www.nexusmods.com/skyrimspecialedition/mods/53000) | The settings menu. |
 | OStimNet (optional) | When installed, the lines during OStim scenes use its description of the scene, its intent and its phase, and the memories its intent. |
+| [Magelight UI](https://www.nexusmods.com/skyrimspecialedition/mods/193303) **or** [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718) (optional) | Only for the relationship map. Everything else works without them. |
+| [Phantasm](https://www.nexusmods.com/skyrimspecialedition/mods/197470) 0.2.0 or later (optional) | The faces on the relationship map. Without it, the map shows plain circles. |
 
 ## Installation
 
@@ -87,6 +95,12 @@ the game's `Data` folder.
 | Who complains | Women and men | Or women only, or men only. |
 | Speak to people nearby | Off | Your character speaks up. |
 | Time between chances (seconds) | 900 | How often your character may speak up, from 10 seconds. Nothing is said in combat, in a menu, during a scene or while SkyrimNet is speaking. |
+| Open the relationship map | Y | The key that opens the relationship map. |
+| Memories read per person | 300 | How many of each person's memories are read, most important first, to find the ones that name the others. |
+| Memories given per pair | 10 | How many memories naming the other are given to the AI for each pair, in each direction. |
+| Latest events read | 150 | How many of the centre's latest SkyrimNet events are read. |
+| Diary entries read per person | 30 | How many of each person's latest diary entries are read (0: none). |
+| Length kept of each record (characters) | 400 | How much of each memory, event or diary passage the AI sees. |
 
 The memories of the participants are always made.
 
@@ -122,8 +136,22 @@ When your character speaks up, the line is written with the bundled prompt
 player, shown in the game's dialogue subtitle (when dialogue subtitles are on), and passed to the
 NPC as something your character said, so they answer.
 
+The relationship map puts the chosen person in the middle and, around them, up to ten people near
+you, nearest first (you too, when an NPC is chosen), whether or not the records tie them together.
+For each of them it sends one request with the bundled prompt `sn_sexual_memories_relmap`: what
+each of the two remembers of the other (most important first), the passages of their latest
+diaries that name the other, the centre's events that name them, what the others in the circle
+remember of each other, who travels with you, and the relationships the game records. A last
+request, `sn_sexual_memories_relmap_summary`, sums the circle up. The AI is told to write only what
+those records say, never to take events from the character profiles or Skyrim's usual
+storylines, and never to say that two people have nothing to do with each other: the records read
+are only part of what happened. The map is saved for each save and shown again until you press
+Refresh. Its AI model and answer length can be set apart from SkyrimNet's other requests in
+SkyrimNet's plugin settings (SNSexualMemories).
+
 The memories are written in the language of the character profiles and the events, so a game
-played in Japanese gets Japanese memories.
+played in Japanese gets Japanese memories. The relationship map is written in the language of the
+memories and events, or in English when you press the English button.
 
 ## Finding the memories in the dashboard
 
@@ -141,13 +169,15 @@ form.
 The prompts are a SkyrimNet prompt bundle, `nightlantern-mods.sn-sexual-history`. Copy
 `prompts/sn_sexual_history_memory.prompt`, `prompts/sn_sexual_history_witness.prompt` or
 `prompts/sn_sexual_history_player_talk.prompt` into your SkyrimNet overlay to change how the
-memories or your character's lines are written, as with any SkyrimNet prompt.
+memories or your character's lines are written, as with any SkyrimNet prompt; the relationship
+map's are `prompts/sn_sexual_memories_relmap.prompt` and
+`prompts/sn_sexual_memories_relmap_summary.prompt`.
 
 ## Log
 
 `SN_SexualHistory.log` in the SKSE log folder (`Documents\My Games\Skyrim Special Edition\SKSE`)
 records each scene, how many events it found, who witnessed it, every memory stored with its text,
-and every line your character says.
+every line your character says, and every relationship map made.
 
 ## Notes and limits
 
@@ -156,6 +186,8 @@ and every line your character says.
 - SexLab does not say who climaxed, so for SexLab scenes only the number of climaxes is known.
 - Complaints only see relationships the game has a record for; a relationship another mod sets up
   during play without one may be missed.
+- The relationship maps are saved in `Data/SKSE/Plugins/SN_SexualHistory/relmaps/`, one folder per
+  save; Phantasm's faces are written next to the map's page. Both can be deleted at any time.
 - On SexLab P+ the mod never reads `thread.Animation`, which makes P+ rewrite all its animation
   aliases on every read; it uses the active scene's ID instead.
 
@@ -168,29 +200,31 @@ dashboard if you want them gone.
 
 | Folder | |
 |---|---|
-| `src/` | The SKSE plugin (C++23, [CommonLibSSE-NG](https://github.com/alandtse/CommonLibVR/tree/ng)). |
+| `src/` | The SKSE plugin (C++23, [CommonLibSSE-NG](https://github.com/alandtse/CommonLibVR/tree/ng)), with the API headers of Prisma UI, Magelight UI and Phantasm. |
+| `view/` | The relationship map's page, shown by Magelight UI or Prisma UI. |
 | `scripts/` | The Papyrus sources. `scripts/stubs/` holds compile-only headers, not shipped: stubs written for this repository that declare only the functions used from OStim, OStimNet, SexLab, SKSE and MCM Helper, and SkyrimNet's MIT-licensed Papyrus API `SkyrimNetApi.psc` (license in `scripts/stubs/LICENSE-SkyrimNetApi.txt`). |
 | `plugin/` | `SN_SexualHistory.esp` as YAML: one quest each for the memories, the lines and the MCM, the complaints, and your character speaking up. |
 | `mcm/` | The MCM config (`MCM/Config/SN_SexualHistory/`). |
 | `skyrimnet-plugin/` | The SkyrimNet prompt bundle. |
-| `tools/` | `make_strings.py` writes the MCM texts in English or Japanese; `build_fomod.ps1` builds and checks the release installer. |
-| `translations/` | The Japanese MCM texts, as written by `make_strings.py`. |
+| `tools/` | `make_strings.py` writes the MCM and relationship map texts in English or Japanese; `build_fomod.ps1` builds and checks the release installer. |
+| `translations/` | The Japanese MCM and relationship map texts, as written by `make_strings.py`. |
 
 You need [xmake](https://xmake.io/) 3.0 or later and Visual Studio 2022. Point `COMMONLIB_SSE_NG`
-at a CommonLibSSE-NG 7.5.4 checkout, then run `xmake build`. The DLL and the prompt bundle are
-laid out in `dist/`. Compile the scripts with the Creation Kit's Papyrus compiler, with
+at a CommonLibSSE-NG 7.5.4 checkout, then run `xmake build`. The DLL, the prompt bundle and the
+relationship map's page are laid out in `dist/`. Compile the scripts with the Creation Kit's Papyrus compiler, with
 `scripts/stubs/` and the vanilla and SKSE sources on the import path.
 
 ## Files
 
-- `SN_SexualHistory_0.3.0.zip`: the mod as a FOMOD installer, with the settings menu in English
+- `SN_SexualHistory_0.4.0.zip`: the mod as a FOMOD installer, with the settings menu in English
   or Japanese, and with `THIRD_PARTY_NOTICES.txt` and `COPYING.txt` (see License). Without an
   installer, use `core/<language>/` from the archive.
 
 ## License
 
 The source in this repository is MIT licensed, see [LICENSE](LICENSE), except the two prompts
-below (`sn_sexual_history_player_talk.prompt` is the mod's own and MIT licensed).
+below (`sn_sexual_history_player_talk.prompt` and the relationship map's two prompts are the mod's
+own and MIT licensed).
 
 The prompts `sn_sexual_history_memory.prompt` and `sn_sexual_history_witness.prompt`
 (`skyrimnet-plugin/nightlantern-mods.sn-sexual-history/prompts/`) are partly based on SkyrimNet's
@@ -214,6 +248,9 @@ Third-party code, with the full license texts in [THIRD_PARTY_NOTICES.txt](THIRD
 - The SkyrimNet API headers in `src/skyrimnet/` and the SkyrimNet Papyrus API in
   `scripts/stubs/SkyrimNetApi.psc`: MIT, Fateless.Ai (see `src/skyrimnet/LICENSE` and
   `scripts/stubs/LICENSE-SkyrimNetApi.txt`).
+- The API headers of Prisma UI (`src/PrismaUI_API.h`, no license text; copying it into a project
+  is invited), Magelight UI (`src/MagelightUI_API.h`) and Phantasm (`src/Phantasm_API.h`): MIT,
+  Severause for the last two. The mods themselves are not included.
 - The two prompts above: SkyrimNet Game Plugin License, section 3, Fateless.Ai.
 - nlohmann/json 3.12.0, spdlog 1.16.0, DirectXMath, DirectX Tool Kit and rapidcsv: MIT, or
   BSD-3-Clause for rapidcsv.

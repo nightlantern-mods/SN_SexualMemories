@@ -33,6 +33,18 @@ Bool Function InScene(Actor akActor) Global Native
 ; says it and akTarget answers. False when a line is already being written.
 Bool Function PlayerTalk(Actor akTarget, Int aiRelationshipRank, String asLocation) Global Native
 
+; Opens the relationship map (Magelight UI or Prisma UI) with the player and the NPCs nearby to
+; choose from, akAimed chosen first when it is one of them. False when neither UI is installed.
+Bool Function OpenRelationshipMap(Actor akAimed) Global Native
+
+; How far back the relationship map reads: memories read per person (most important first),
+; memories given per pair and direction, the centre's latest events read, diary entries read per
+; person (latest first), and the characters kept of one memory, event or diary passage.
+Function SetMapSettings(Int aiMemoryScan, Int aiMemoriesUsed, Int aiEventScan, Int aiDiaryScan, Int aiTextChars) Global Native
+
+; True when Magelight UI or Prisma UI is installed, so the relationship map can be shown.
+Bool Function RelationshipMapAvailable() Global Native
+
 ; The scene ended: the plugin gathers the SkyrimNet events and memories of the participants, has
 ; the LLM write a memory for everyone who took part (the player too), and stores it in SkyrimNet.
 Function SceneEnded(Int aiKey) Global Native

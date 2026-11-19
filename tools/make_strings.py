@@ -6,6 +6,7 @@ The game reads only the file of its own language, so the chosen language is writ
 game language's name: the English package shows English whatever the game's language, and the
 Japanese one Japanese.
 """
+import json
 import os
 import sys
 
@@ -63,13 +64,70 @@ STRINGS = [
     ('$SNSH_PlayerTalkIntervalHelp',
      'How often a chance comes. Nothing is said in combat, in a menu, during a scene or while SkyrimNet is speaking.',
      'きっかけが来る間隔です。戦闘中、メニューを開いているとき、シーン中、SkyrimNet が話している間は話しかけません。'),
+
+    ('$SNSH_HeaderMap', 'Relationship map', '相関図'),
+    ('$SNSH_MapKey', 'Open the relationship map', '相関図を開く'),
+    ('$SNSH_MapKeyHelp',
+     'Opens the relationship map: choose yourself or an NPC nearby (the one under your crosshair is chosen first), and SkyrimNet\'s AI maps what lies between them and up to ten people around you (you too, when an NPC is chosen), from their memories, diaries and events. Needs Magelight UI or Prisma UI; with Phantasm, faces are shown. Its AI model is set in SkyrimNet\'s plugin settings (SNSexualMemories).',
+     '相関図を開きます。自分か近くのNPCを選ぶと（照準の先の人が最初から選ばれます）、その人と周りにいる最大10人（NPCを選んだときは自分も含む）との関係を、記憶・日記・イベントから SkyrimNet のAIがまとめます。Magelight UI か Prisma UI が必要です。Phantasm があれば顔写真も出ます。Magelight UI か Prisma UI が必要です。使うAIモデルは SkyrimNet のプラグイン設定（SNSexualMemories）で選べます。'),
+    ('$SNSH_MapMemoryScan', 'Memories read per person', '1人あたり読む記憶の数'),
+    ('$SNSH_MapMemoryScanHelp',
+     'How many of each person\'s memories are read, most important first, to find the ones that name the others. More finds older ties; it takes a little longer.',
+     '相手の名前が出てくる記憶を探すために、1人あたり何件の記憶を読むかです（重要度の高い順）。多くすると昔の関わりも拾えますが、少し時間がかかります。'),
+    ('$SNSH_MapMemoriesUsed', 'Memories given per pair', '組ごとに渡す記憶の数'),
+    ('$SNSH_MapMemoriesUsedHelp',
+     'How many memories naming the other are given to the AI for each pair, in each direction. More gives a fuller description and costs more.',
+     'ふたりの組ごとに、相手の名前が出てくる記憶を片側あたり何件AIに渡すかです。多いほど詳しくなりますが、AIの利用料金が増えます。'),
+    ('$SNSH_MapEventScan', 'Latest events read', '読む直近のイベントの数'),
+    ('$SNSH_MapEventScanHelp',
+     'How many of the centre\'s latest SkyrimNet events are read to find the ones that name each person.',
+     '中心人物の直近のイベントを何件読んで、各人の名前が出てくるものを探すかです。'),
+    ('$SNSH_MapDiaryScan', 'Diary entries read per person', '1人あたり読む日記の数'),
+    ('$SNSH_MapDiaryScanHelp',
+     'How many of each person\'s latest diary entries are read; the passages that name the other are given to the AI. 0 leaves diaries out.',
+     '1人あたり新しい日記を何件読むかです。相手の名前が出てくる部分をAIに渡します。0 にすると日記を使いません。'),
+    ('$SNSH_MapTextChars', 'Length kept of each record (characters)', '1件あたりに使う長さ（文字）'),
+    ('$SNSH_MapTextCharsHelp',
+     'How many characters of each memory, event or diary passage the AI sees. Longer keeps the feelings and outcomes at the end of a memory, and costs more.',
+     '記憶・イベント・日記の1件あたり、何文字までAIに渡すかです。長いほど記憶の後半の気持ちや結末まで伝わりますが、AIの利用料金が増えます。'),
+    ('$SNSH_MapNoUI', 'The relationship map needs Magelight UI or Prisma UI.', '相関図には Magelight UI か Prisma UI が必要です。'),
+]
+
+# The relationship map page's texts (SKSE/Plugins/SN_SexualHistory/strings.json): key, English, Japanese.
+UI_STRINGS = [
+    ('title', 'Relationship map', '相関図'),
+    ('you', 'you', 'あなた'),
+    ('refresh', 'Refresh', '更新'),
+    # Remakes the map in English. Empty in English: the button is hidden there (Refresh does it).
+    ('english', '', '英語で出力'),
+    ('close', 'Close', '閉じる'),
+    ('choose', 'Choose a person on the left.', '左の一覧から人物を選んでください。'),
+    ('loading', 'The AI is drawing the relationship map of {name}. This can take a minute.', '{name} の相関図をAIが作成しています。1分ほどかかることがあります。'),
+    ('generated', 'Made {date}', '作成: {date}'),
+    ('makeCenter', 'Put {name} in the centre', '{name} を中心にする'),
+    ('circle', 'Their circle', '人間関係のまとめ'),
+    ('feelings', 'Feelings', 'お互いの気持ち'),
+    ('history', 'What they went through', '主な出来事'),
+    ('follower', 'follower', '仲間'),
+    ('links', '{name} and the others in the circle', '{name}と周りの人たち'),
+    ('noLinks', 'No ties drawn.', '関係は描かれていません。'),
+    ('noRecord', 'Little about the two of them was found in the records read. That does not mean there is nothing between them.', '読んだ記録の中には、ふたりのやり取りがあまり見つかりませんでした。関わりがなかったという意味ではありません。'),
+    ('error_ai', 'The AI could not draw the map. Try Refresh, or check the model in SkyrimNet\'s plugin settings.', 'AIが相関図を作れませんでした。「更新」を押すか、SkyrimNet のプラグイン設定でモデルを確認してください。'),
+    ('error_skyrimnet', 'SkyrimNet is not ready yet. Load a save first.', 'SkyrimNet の準備ができていません。先にセーブを読み込んでください。'),
+    ('error_nobody', 'There is nobody near you to put on the map.', '近くに、相関図に載せられる人がいません。'),
+    ('error_busy', 'Another map is still being drawn. Wait a moment.', '別の相関図を作成中です。少し待ってください。'),
+    ('tone_positive', 'warm', '好意'),
+    ('tone_negative', 'hostile', '敵意'),
+    ('tone_mixed', 'mixed', '複雑'),
+    ('tone_neutral', 'neutral', '普通'),
 ]
 
 COLUMNS = {'en': 1, 'ja': 2}
 
 
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] not in COLUMNS:
+    # usage: make_strings.py <en|ja> <Interface/Translations folder> [<strings.json path>]
+    if len(sys.argv) not in (3, 4) or sys.argv[1] not in COLUMNS:
         sys.exit(__doc__)
     column = COLUMNS[sys.argv[1]]
     out = sys.argv[2]
@@ -82,6 +140,14 @@ def main():
         with open(path, 'w', encoding='utf-16', newline='') as handle:
             handle.write('\r\n'.join(lines) + '\r\n')
     print(out, sys.argv[1], len(lines), 'strings x', len(LANGUAGES), 'files')
+    if len(sys.argv) == 4:
+        ui = {row[0]: row[column] for row in UI_STRINGS}
+        assert len(ui) == len(UI_STRINGS), 'duplicate UI key'
+        os.makedirs(os.path.dirname(sys.argv[3]), exist_ok=True)
+        with open(sys.argv[3], 'w', encoding='utf-8', newline='\n') as handle:
+            json.dump(ui, handle, ensure_ascii=False, indent=1)
+            handle.write('\n')
+        print(sys.argv[3], len(ui), 'UI strings')
 
 
 if __name__ == '__main__':
