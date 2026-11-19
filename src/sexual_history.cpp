@@ -798,6 +798,17 @@ namespace SexualHistory
                     }
                 }
             }
+            if (a_map.contains("archive") && a_map["archive"].is_array()) {
+                std::scoped_lock lock(g_faceLock);
+                for (const auto& card : a_map["archive"]) {
+                    if (card.is_object() && card.contains("id") && card["id"].is_number()) {
+                        const auto found = g_faces.find(card["id"].get<RE::FormID>());
+                        if (found != g_faces.end()) {
+                            SendFace(found->first, found->second.first, found->second.second);
+                        }
+                    }
+                }
+            }
             if (missing.empty()) {
                 return;
             }
@@ -1080,6 +1091,7 @@ namespace SexualHistory
             std::vector<MapPerson> people;
             std::string            gameDate;
             bool                   english = false;  // written in English (the page's "Write in English")
+            std::string            defaultLanguage;  // when the records show no language: the installed texts' one
             std::map<std::string, json> answers;  // by person key
             int                    pending = 0;
         };
@@ -1088,6 +1100,78 @@ namespace SexualHistory
         {
             auto tone = a_object.value("tone", std::string("neutral"));
             return tone == "positive" || tone == "negative" || tone == "mixed" ? tone : std::string("neutral");
+        }
+
+        // The cards kept from earlier maps of this centre: everyone on the saved map or in its
+        // archive who is not on the new one (a_people), newest first, each as it was when made
+        // (its date in "generated"; its ties by name, since keys belong to one map only).
+        json RelMapArchive(RE::FormID a_center, const json& a_people)
+        {
+            json archive = json::array();
+            std::ifstream in(RelMapFile(a_center), std::ios::binary);
+            if (!in) {
+                return archive;
+            }
+            const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            const auto        old = json::parse(text, nullptr, false);
+            if (!old.is_object()) {
+                return archive;
+            }
+            std::vector<RE::FormID> seen;
+            for (const auto& p : a_people) {
+                if (p.contains("id") && p["id"].is_number()) {
+                    seen.push_back(p["id"].get<RE::FormID>());
+                }
+            }
+            const auto keep = [&](json a_card) {
+                if (!a_card.is_object() || !a_card.contains("id") || !a_card["id"].is_number()) {
+                    return;
+                }
+                const auto id = a_card["id"].get<RE::FormID>();
+                if (id == a_center || std::ranges::find(seen, id) != seen.end()) {
+                    return;
+                }
+                seen.push_back(id);
+                archive.push_back(std::move(a_card));
+            };
+            const auto& oldPeople = old.contains("people") && old["people"].is_array() ? old["people"] : json::array();
+            const auto& oldLinks = old.contains("links") && old["links"].is_array() ? old["links"] : json::array();
+            const auto  nameOf = [&](const std::string& a_key) {
+                for (const auto& p : oldPeople) {
+                    if (p.value("key", std::string()) == a_key) {
+                        return p.value("name", std::string());
+                    }
+                }
+                return std::string();
+            };
+            for (const auto& p : oldPeople) {
+                const auto key = p.value("key", std::string());
+                if (key.empty() || key == "c") {
+                    continue;
+                }
+                json card = p;
+                card.erase("key");
+                card["generated"] = old.value("generated", std::string());
+                json ties = json::array();
+                for (const auto& l : oldLinks) {
+                    const auto a = l.value("a", std::string()), b = l.value("b", std::string());
+                    if (a == "c" || b == "c" || (a != key && b != key)) {
+                        continue;
+                    }
+                    const auto other = nameOf(a == key ? b : a);
+                    if (!other.empty()) {
+                        ties.push_back({ { "name", other }, { "label", l.value("label", std::string()) }, { "tone", l.value("tone", std::string("neutral")) } });
+                    }
+                }
+                card["ties"] = ties;
+                keep(std::move(card));
+            }
+            if (old.contains("archive") && old["archive"].is_array()) {
+                for (const auto& card : old["archive"]) {
+                    keep(card);
+                }
+            }
+            return archive;
         }
 
         // Builds the map from the answers, saves and shows it. a_summary: the circle's summary.
@@ -1139,6 +1223,7 @@ namespace SexualHistory
             }
             map["people"] = outPeople;
             map["links"] = outLinks;
+            map["archive"] = RelMapArchive(people.front().formID, outPeople);
             const auto text = Dump(map);
             std::error_code error;
             std::filesystem::create_directories(RelMapFolder(), error);
@@ -1170,7 +1255,7 @@ namespace SexualHistory
                 return;
             }
             const json context = { { "center_name", a_job->people.front().name }, { "center_form_id", a_job->people.front().formID }, { "people", people },
-                { "language", a_job->english ? "English" : "" } };
+                { "language", a_job->english ? "English" : "" }, { "default_language", a_job->defaultLanguage } };
             const bool queued = PublicSendCustomPromptToLLM(kRelMapSummaryPrompt, kRelMapVariant, Dump(context).c_str(),
                 [a_job](const char* a_response, int a_success) {
                     std::string summary;
@@ -1230,6 +1315,7 @@ namespace SexualHistory
             job->people = a_people;
             job->gameDate = a_gameDate;
             job->english = g_mapEnglish.load();
+            job->defaultLanguage = UiStrings().value("aiLanguage", std::string("English"));
             job->pending = static_cast<int>(a_people.size()) - 1;
             for (const auto& person : a_people) {
                 if (person.key == "c") {
@@ -1291,6 +1377,7 @@ namespace SexualHistory
                     { "game_relations", relations },
                     { "game_date", a_gameDate },
                     { "language", job->english ? "English" : "" },
+                    { "default_language", job->defaultLanguage },
                 };
                 const auto key = person.key;
                 const bool queued = PublicSendCustomPromptToLLM(kRelMapPrompt, kRelMapVariant, Dump(context).c_str(),
@@ -1436,7 +1523,10 @@ namespace SexualHistory
         }
 
         // Game thread. A_refresh: remake it even when one is saved; a_english: remake it in English.
-        void RelMapPick(RE::FormID a_center, bool a_refresh, bool a_english = false)
+        // a_exclude: the people taken off the page's list; they are left off the map. Without
+        // a_refresh, only a saved map is shown: none is made until the page's Create (no LLM
+        // request just by opening the map or choosing someone).
+        void RelMapPick(RE::FormID a_center, bool a_refresh, bool a_english = false, std::vector<RE::FormID> a_exclude = {})
         {
             auto* actor = RE::TESForm::LookupByID<RE::Actor>(a_center);
             if (!actor) {
@@ -1453,6 +1543,8 @@ namespace SexualHistory
                         return;
                     }
                 }
+                UiHost::Invoke("window.snsm && window.snsm.showEmpty(" + Dump(json(ActorName(actor))) + ")");
+                return;
             }
             if (g_relMapBusy.exchange(true)) {
                 PageError("busy");
@@ -1464,7 +1556,8 @@ namespace SexualHistory
             std::vector<MapPerson> people{ { a_center, name, "c", 0, false, "" } };
             auto add = [&](RE::Actor* a_person) {
                 const auto personName = ActorName(a_person);
-                if (a_person->GetFormID() != a_center && !personName.empty() && static_cast<int>(people.size()) <= kRelMapPeople) {
+                if (a_person->GetFormID() != a_center && !personName.empty() && static_cast<int>(people.size()) <= kRelMapPeople &&
+                    std::ranges::find(a_exclude, a_person->GetFormID()) == a_exclude.end()) {
                     people.push_back({ a_person->GetFormID(), personName, "p" + std::to_string(people.size()), 0, false, "" });
                 }
             };
@@ -1494,16 +1587,33 @@ namespace SexualHistory
             UiHost::Post([id]() { RelMapPick(id, false); });
         }
 
+        // The page's Create / Refresh and "Write in English": {"center": hex id, "exclude": [hex ids]}.
+        void MakeFromPage(const char* a_arg, bool a_english)
+        {
+            const auto request = json::parse(a_arg ? a_arg : "", nullptr, false);
+            if (!request.is_object()) {
+                return;
+            }
+            const auto              id = ParseFormID(request.value("center", std::string()).c_str());
+            std::vector<RE::FormID> exclude;
+            if (request.contains("exclude") && request["exclude"].is_array()) {
+                for (const auto& e : request["exclude"]) {
+                    if (e.is_string()) {
+                        exclude.push_back(ParseFormID(e.get<std::string>().c_str()));
+                    }
+                }
+            }
+            UiHost::Post([id, a_english, exclude = std::move(exclude)]() { RelMapPick(id, true, a_english, exclude); });
+        }
+
         void OnPageRefresh(const char* a_arg)
         {
-            const auto id = ParseFormID(a_arg);
-            UiHost::Post([id]() { RelMapPick(id, true); });
+            MakeFromPage(a_arg, false);
         }
 
         void OnPageEnglish(const char* a_arg)
         {
-            const auto id = ParseFormID(a_arg);
-            UiHost::Post([id]() { RelMapPick(id, true, true); });
+            MakeFromPage(a_arg, true);
         }
 
         std::atomic<bool> g_mapOpen = false;

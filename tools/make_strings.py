@@ -68,8 +68,8 @@ STRINGS = [
     ('$SNSH_HeaderMap', 'Relationship map', '相関図'),
     ('$SNSH_MapKey', 'Open the relationship map', '相関図を開く'),
     ('$SNSH_MapKeyHelp',
-     'Opens the relationship map: choose yourself or an NPC nearby (the one under your crosshair is chosen first), and SkyrimNet\'s AI maps what lies between them and up to ten people around you (you too, when an NPC is chosen), from their memories, diaries and events. Needs Magelight UI or Prisma UI; with Phantasm, faces are shown. Its AI model is set in SkyrimNet\'s plugin settings (SNSexualMemories).',
-     '相関図を開きます。自分か近くのNPCを選ぶと（照準の先の人が最初から選ばれます）、その人と周りにいる最大10人（NPCを選んだときは自分も含む）との関係を、記憶・日記・イベントから SkyrimNet のAIがまとめます。Magelight UI か Prisma UI が必要です。Phantasm があれば顔写真も出ます。Magelight UI か Prisma UI が必要です。使うAIモデルは SkyrimNet のプラグイン設定（SNSexualMemories）で選べます。'),
+     'Opens the relationship map: choose yourself or an NPC nearby (the one under your crosshair is chosen first), and SkyrimNet\'s AI maps what lies between them and up to ten people around you (you too, when an NPC is chosen), from their memories, diaries and events. Needs Magelight UI or Prisma UI; with Phantasm, faces are shown. Its AI model is set in SkyrimNet\'s dashboard: AI > Models, sn_sexual_memories_relmap.',
+     '相関図を開きます。自分か近くのNPCを選ぶと（照準の先の人が最初から選ばれます）、その人と周りにいる最大10人（NPCを選んだときは自分も含む）との関係を、記憶・日記・イベントから SkyrimNet のAIがまとめます。Magelight UI か Prisma UI が必要です。Phantasm があれば顔写真も出ます。使うAIモデルは、SkyrimNet のダッシュボードの「AI > モデル」にある sn_sexual_memories_relmap で設定します。'),
     ('$SNSH_MapMemoryScan', 'Memories read per person', '1人あたり読む記憶の数'),
     ('$SNSH_MapMemoryScanHelp',
      'How many of each person\'s memories are read, most important first, to find the ones that name the others. More finds older ties; it takes a little longer.',
@@ -95,9 +95,18 @@ STRINGS = [
 
 # The relationship map page's texts (SKSE/Plugins/SN_SexualHistory/strings.json): key, English, Japanese.
 UI_STRINGS = [
+    # Not shown: the language the AI writes the map in when the records do not show one.
+    ('aiLanguage', 'English', 'Japanese'),
     ('title', 'Relationship map', '相関図'),
     ('you', 'you', 'あなた'),
     ('refresh', 'Refresh', '更新'),
+    ('create', 'Create', '作成'),
+    ('notMade', 'There is no relationship map of {name} yet. Create asks the AI once for each person on the list on the left (up to ten, nearest first). Take off the ones you do not want with × first.', '{name} の相関図はまだありません。「作成」を押すと、左の一覧の人ごとに AI へ 1 回ずつ問い合わせます（近い順に最大 10 人）。載せたくない人は、先に × で一覧から外してください。'),
+    ('remove', 'Leave off the map', '相関図から外す'),
+    ('archive', 'Earlier records ({count})', '以前の記録（{count}人）'),
+    ('archiveNote', 'People who are not on this map, from earlier maps of the same person. Each card is as it was when made; click one to open it.', '同じ人物の以前の相関図にいて、今回の図にいない人です。各カードは作った時点の内容のままです。押すと開きます。'),
+    ('recorded', 'Recorded {date}', '記録日: {date}'),
+    ('filter', 'Find by name', '名前で絞り込む'),
     # Remakes the map in English. Empty in English: the button is hidden there (Refresh does it).
     ('english', '', '英語で出力'),
     ('close', 'Close', '閉じる'),
@@ -112,7 +121,7 @@ UI_STRINGS = [
     ('links', '{name} and the others in the circle', '{name}と周りの人たち'),
     ('noLinks', 'No ties drawn.', '関係は描かれていません。'),
     ('noRecord', 'Little about the two of them was found in the records read. That does not mean there is nothing between them.', '読んだ記録の中には、ふたりのやり取りがあまり見つかりませんでした。関わりがなかったという意味ではありません。'),
-    ('error_ai', 'The AI could not draw the map. Try Refresh, or check the model in SkyrimNet\'s plugin settings.', 'AIが相関図を作れませんでした。「更新」を押すか、SkyrimNet のプラグイン設定でモデルを確認してください。'),
+    ('error_ai', 'The AI could not draw the map. Try Refresh, or check the model in SkyrimNet\'s dashboard: AI > Models, sn_sexual_memories_relmap.', 'AIが相関図を作れませんでした。「更新」を押すか、SkyrimNet のダッシュボードの「AI > モデル」にある sn_sexual_memories_relmap のモデルを確認してください。'),
     ('error_skyrimnet', 'SkyrimNet is not ready yet. Load a save first.', 'SkyrimNet の準備ができていません。先にセーブを読み込んでください。'),
     ('error_nobody', 'There is nobody near you to put on the map.', '近くに、相関図に載せられる人がいません。'),
     ('error_busy', 'Another map is still being drawn. Wait a moment.', '別の相関図を作成中です。少し待ってください。'),

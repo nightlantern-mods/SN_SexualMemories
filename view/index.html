@@ -5,7 +5,9 @@
 <title>SN Sexual Memories - Relationship map</title>
 <!-- The relationship map of SN Sexual Memories, drawn by Magelight UI or Prisma UI. The plugin
      calls window.snsm.open / showLoading / showMap / showError / escape; the page answers through
-     window.snsmPick(id), window.snsmRefresh(id), window.snsmEnglish(id) and window.snsmClose();
+     window.snsmPick(id) (shows a saved map, never makes one), window.snsmRefresh(json) and
+     window.snsmEnglish(json) (make one: {"center": id, "exclude": [ids taken off the list]}) and
+     window.snsmClose();
      window.snsm.setFace({id, file, v}) brings a face drawn by Phantasm, when it is installed. Opened in a plain
      browser, it shows a sample. -->
 <style>
@@ -39,6 +41,10 @@
     #people .item:hover { background: #3a2e20; }
     #people .item.selected { background: #5a4528; color: #fff3d8; }
     #people .item .you { color: var(--accent); font-size: 1.4vh; margin-left: 0.4vw; }
+    #people .item { display: flex; align-items: center; }
+    #people .item .label { flex: 1; }
+    #people .item .remove { color: var(--muted); padding: 0 0.4vw; border-radius: 3px; font-size: 1.9vh; line-height: 1; }
+    #people .item .remove:hover { color: #fff3d8; background: var(--negative); }
     #stage { position: relative; overflow: hidden; }
     #map { width: 100%; height: 100%; }
     #message { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 3vw; font-size: 2.1vh; color: var(--muted); pointer-events: none; }
@@ -58,6 +64,16 @@
     .card { border: 1px solid var(--line); border-left: 5px solid var(--neutral); border-radius: 5px; padding: 1.2vh 1vw; margin: 0 0 1.4vh; background: rgba(40, 31, 22, 0.7); }
     .card.chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
     .card .head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6vw; margin-bottom: 0.6vh; }
+    #filter { width: 100%; margin: 0 0 1.4vh; padding: 0.6vh 0.7vw; font-size: 1.7vh; color: var(--text); background: rgba(20, 16, 11, 0.8); border: 1px solid var(--line); border-radius: 4px; }
+    #filter:focus { outline: none; border-color: var(--accent); }
+    .archive-head { margin: 2.2vh 0 0.4vh; }
+    .archive-note { color: var(--muted); font-size: 1.5vh; margin-bottom: 1.2vh; }
+    .card.archived { opacity: 0.92; }
+    .card.archived .head { cursor: pointer; margin-bottom: 0; }
+    .card.archived .date { font-size: 1.4vh; color: var(--muted); margin-left: auto; }
+    .card.archived .body { display: none; margin-top: 0.8vh; }
+    .card.archived.open .body { display: block; }
+    .card.hidden { display: none; }
     .card .face { width: 6.5vh; height: 6.5vh; border-radius: 50%; object-fit: cover; background: #4d3d29; border: 2px solid var(--line); }
     .card .name { font-size: 2.1vh; font-weight: 600; color: #fff3d8; }
     .card .rolebadge { font-size: 1.55vh; border-radius: 3px; padding: 0.1vh 0.5vw; color: #1a140e; font-weight: 600; }
@@ -102,6 +118,13 @@
         title: "Relationship map",
         you: "you",
         refresh: "Refresh",
+        create: "Create",
+        notMade: "There is no relationship map of {name} yet. Create asks the AI once for each person on the list on the left (up to ten, nearest first). Take off the ones you do not want with \u00d7 first.",
+        remove: "Leave off the map",
+        archive: "Earlier records ({count})",
+        archiveNote: "People who are not on this map, from earlier maps of the same person. Each card is as it was when made; click one to open it.",
+        recorded: "Recorded {date}",
+        filter: "Find by name",
         english: "",
         close: "Close",
         choose: "Choose a person on the left.",
@@ -115,7 +138,7 @@
         links: "{name} and the others in the circle",
         noLinks: "No ties drawn.",
         noRecord: "Little about the two of them was found in the records read. That does not mean there is nothing between them.",
-        error_ai: "The AI could not draw the map. Try Refresh, or check the model in SkyrimNet's plugin settings.",
+        error_ai: "The AI could not draw the map. Try Refresh, or check the model in SkyrimNet's dashboard: AI > Models, sn_sexual_memories_relmap.",
         error_skyrimnet: "SkyrimNet is not ready yet. Load a save first.",
         error_nobody: "There is nobody near you to put on the map.",
         error_busy: "Another map is still being drawn. Wait a moment.",
@@ -130,6 +153,8 @@
     let map = null;       // the map on screen
     let chosenKey = "";   // the node shown on the right
     let faces = {};       // hex id -> picture address, drawn by Phantasm
+    let removed = [];     // hex ids taken off the list: left off the maps made until the page closes
+    let filterText = "";  // the side's name filter
 
     function t(key, vars) {
         let text = S[key] || DEFAULT_STRINGS[key] || key;
@@ -173,10 +198,39 @@
         for (const person of people) {
             const item = document.createElement("div");
             item.className = "item" + (person.id === selected ? " selected" : "");
-            item.innerHTML = escapeHtml(person.name) + (person.player ? '<span class="you">(' + escapeHtml(t("you")) + ")</span>" : "");
+            item.innerHTML = '<span class="label">' + escapeHtml(person.name) + (person.player ? '<span class="you">(' + escapeHtml(t("you")) + ")</span>" : "") + "</span>";
             item.onclick = () => pick(person.id);
+            if (!person.player) {
+                const x = document.createElement("span");
+                x.className = "remove";
+                x.textContent = "\u00d7";
+                x.title = t("remove");
+                x.onclick = (e) => {
+                    e.stopPropagation();
+                    removePerson(person.id);
+                };
+                item.appendChild(x);
+            }
             list.appendChild(item);
         }
+    }
+
+    // Takes someone off the list: they are left off every map made until the page closes.
+    function removePerson(id) {
+        removed.push(id);
+        people = people.filter((p) => p.id !== id);
+        if (id === selected) {
+            const player = people.find((p) => p.player);
+            if (player) {
+                pick(player.id);
+                return;
+            }
+        }
+        renderPeople();
+    }
+
+    function makeRequest() {
+        return JSON.stringify({ center: selected, exclude: removed });
     }
 
     function setMessage(html) {
@@ -193,6 +247,7 @@
 
     function pick(id) {
         selected = id;
+        filterText = "";
         renderPeople();
         clearMap();
         setButtons(false);
@@ -202,6 +257,7 @@
     function setButtons(enabled) {
         $("refresh").disabled = !enabled;
         $("english").disabled = !enabled;
+        $("refresh").textContent = t(map ? "refresh" : "create");
     }
 
     // Lays the centre in the middle and the others on a circle, then draws the ties.
@@ -309,9 +365,65 @@
 
     // The text is the heart of the map: the circle's summary, then a card for every person,
     // strongest ties first.
+    // The head and body of a card. ties: [{name, label}]. archived: folded, with its date.
+    function cardHtml(person, ties, archived) {
+        const face = faces[hex(person.id)];
+        let html = '<div class="head"><img class="face" data-face="' + hex(person.id) + '"' +
+            (face ? ' src="' + escapeHtml(face) + '"' : ' style="display:none"') + '><span class="name">' + escapeHtml(person.name) + "</span>";
+        if (person.role) {
+            html += '<span class="rolebadge" style="background:' + toneColor(person.tone) + '">' + escapeHtml(person.role) + "</span>";
+        }
+        html += '<span class="tone">' + escapeHtml(t("tone_" + (person.tone || "neutral"))) + "</span>";
+        if (person.follower) {
+            html += '<span class="badge">' + escapeHtml(t("follower")) + "</span>";
+        }
+        if (archived && person.generated) {
+            html += '<span class="date">' + escapeHtml(t("recorded", { date: person.generated })) + "</span>";
+        }
+        html += '</div><div class="body">';
+        html += '<div class="text">' + escapeHtml(person.summary || t("noRecord")) + "</div>";
+        if (person.feelings) {
+            html += "<h3>" + escapeHtml(t("feelings")) + '</h3><div class="text">' + escapeHtml(person.feelings) + "</div>";
+        }
+        if (person.history && person.history.length) {
+            html += "<h3>" + escapeHtml(t("history")) + "</h3><ul>" + person.history.map((h) => "<li>" + escapeHtml(h) + "</li>").join("") + "</ul>";
+        }
+        if (ties.length) {
+            html += "<h3>" + escapeHtml(t("links", { name: person.name })) + "</h3><ul>" + ties.map((l) => "<li>" + escapeHtml(l.name) +
+                (l.label ? ": " + escapeHtml(l.label) : "") + "</li>").join("") + "</ul>";
+        }
+        return html + "</div>";
+    }
+
+    function centerButton(person) {
+        const button = document.createElement("button");
+        button.textContent = t("makeCenter", { name: person.name });
+        button.onclick = (e) => {
+            e.stopPropagation();
+            const id = hex(person.id);
+            if (!people.some((p) => p.id === id)) {
+                people.push({ id: id, name: person.name, player: false });
+            }
+            pick(id);
+        };
+        return button;
+    }
+
+    function applyFilter() {
+        const q = filterText.trim().toLowerCase();
+        document.querySelectorAll("#side .card").forEach((c) => c.classList.toggle("hidden", !!q && !(c.dataset.name || "").toLowerCase().includes(q)));
+    }
+
     function renderCards() {
         const side = $("side");
         side.innerHTML = "";
+        const archive = map.archive || [];
+        const filter = document.createElement("input");
+        filter.id = "filter";
+        filter.placeholder = t("filter");
+        filter.value = filterText;
+        filter.oninput = () => { filterText = filter.value; applyFilter(); };
+        side.appendChild(filter);
         const intro = document.createElement("div");
         intro.className = "intro";
         intro.innerHTML = "<h2>" + escapeHtml(t("circle")) + "</h2><div>" + escapeHtml(map.summary) + "</div>";
@@ -325,44 +437,33 @@
             const card = document.createElement("div");
             card.className = "card" + (person.key === chosenKey ? " chosen" : "");
             card.id = "card-" + person.key;
+            card.dataset.name = person.name;
             card.style.borderLeftColor = toneColor(person.tone);
-            const face = faces[hex(person.id)];
-            let html = '<div class="head"><img class="face" data-face="' + hex(person.id) + '"' +
-                (face ? ' src="' + escapeHtml(face) + '"' : ' style="display:none"') + '><span class="name">' + escapeHtml(person.name) + "</span>";
-            if (person.role) {
-                html += '<span class="rolebadge" style="background:' + toneColor(person.tone) + '">' + escapeHtml(person.role) + "</span>";
-            }
-            html += '<span class="tone">' + escapeHtml(t("tone_" + (person.tone || "neutral"))) + "</span>";
-            if (person.follower) {
-                html += '<span class="badge">' + escapeHtml(t("follower")) + "</span>";
-            }
-            html += "</div>";
-            html += '<div class="text">' + escapeHtml(person.summary || t("noRecord")) + "</div>";
-            if (person.feelings) {
-                html += "<h3>" + escapeHtml(t("feelings")) + '</h3><div class="text">' + escapeHtml(person.feelings) + "</div>";
-            }
-            if (person.history && person.history.length) {
-                html += "<h3>" + escapeHtml(t("history")) + "</h3><ul>" + person.history.map((h) => "<li>" + escapeHtml(h) + "</li>").join("") + "</ul>";
-            }
-            const ties = map.links.filter((l) => l.a !== "c" && l.b !== "c" && (l.a === person.key || l.b === person.key));
-            if (ties.length) {
-                html += "<h3>" + escapeHtml(t("links", { name: person.name })) + "</h3><ul>" + ties.map((l) => "<li>" + escapeHtml(nameOf(l.a === person.key ? l.b : l.a)) +
-                    (l.label ? ": " + escapeHtml(l.label) : "") + "</li>").join("") + "</ul>";
-            }
-            card.innerHTML = html;
-            const button = document.createElement("button");
-            button.textContent = t("makeCenter", { name: person.name });
-            button.onclick = () => {
-                const id = hex(person.id);
-                if (!people.some((p) => p.id === id)) {
-                    people.push({ id: id, name: person.name, player: false });
-                }
-                pick(id);
-            };
-            card.appendChild(button);
-            card.addEventListener("click", (e) => { if (e.target !== button) { focusCard(person.key, true); } });
+            const ties = map.links.filter((l) => l.a !== "c" && l.b !== "c" && (l.a === person.key || l.b === person.key))
+                .map((l) => ({ name: nameOf(l.a === person.key ? l.b : l.a), label: l.label }));
+            card.innerHTML = cardHtml(person, ties, false);
+            card.querySelector(".body").appendChild(centerButton(person));
+            card.addEventListener("click", () => focusCard(person.key, true));
             side.appendChild(card);
         }
+        // Everyone from earlier maps of this centre who is not on this one, folded, newest first.
+        if (archive.length) {
+            const head = document.createElement("div");
+            head.className = "archive-head";
+            head.innerHTML = "<h2>" + escapeHtml(t("archive", { count: archive.length })) + '</h2><div class="archive-note">' + escapeHtml(t("archiveNote")) + "</div>";
+            side.appendChild(head);
+            for (const person of archive) {
+                const card = document.createElement("div");
+                card.className = "card archived";
+                card.dataset.name = person.name || "";
+                card.style.borderLeftColor = toneColor(person.tone);
+                card.innerHTML = cardHtml(person, person.ties || [], true);
+                card.querySelector(".body").appendChild(centerButton(person));
+                card.querySelector(".head").addEventListener("click", () => card.classList.toggle("open"));
+                side.appendChild(card);
+            }
+        }
+        applyFilter();
         drawMap();
     }
 
@@ -385,6 +486,7 @@
             S = Object.assign({}, DEFAULT_STRINGS, (data && data.strings) || {});
             applyStrings();
             people = (data && data.people) || [];
+            removed = [];
             $("shade").classList.add("open");
             clearMap();
             setMessage(escapeHtml(t("choose")));
@@ -393,6 +495,12 @@
             } else {
                 renderPeople();
             }
+        },
+        // No saved map of this person: nothing is made until Create.
+        showEmpty(name) {
+            clearMap();
+            setButtons(true);
+            setMessage(escapeHtml(t("notMade", { name: name })));
         },
         showLoading(name) {
             clearMap();
@@ -446,13 +554,13 @@
     $("refresh").onclick = () => {
         if (selected) {
             setButtons(false);
-            send("snsmRefresh", selected);
+            send("snsmRefresh", makeRequest());
         }
     };
     $("english").onclick = () => {
         if (selected) {
             setButtons(false);
-            send("snsmEnglish", selected);
+            send("snsmEnglish", makeRequest());
         }
     };
     $("close").onclick = close;

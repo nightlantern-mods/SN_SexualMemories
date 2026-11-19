@@ -1,4 +1,4 @@
-# SN Sexual Memories 0.4.0
+# SN Sexual Memories 0.4.1
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
 
@@ -7,6 +7,15 @@
 > sends extra requests to your LLM. If things get too busy, or you are watching your LLM costs,
 > turn features off in the MCM. (The memories of the people in a scene are always made: one
 > request per participant when a scene ends.)
+
+> [!WARNING]
+> **The relationship map's model: check it before you make maps.** The map has its own model
+> setting in SkyrimNet's dashboard: AI > Models, the `sn_sexual_memories_relmap` card. **When its
+> model is left empty, the map uses SkyrimNet's `default` model**, the one your NPCs' dialogue uses (or
+> its rotation of several models, with the built-in presets). A map asks that model once for each
+> person on it (up to ten) and once more for the summary, with long requests, so with an
+> expensive default model each map can cost noticeably. To keep costs down, enter a cheaper model
+> there; to get fuller maps, a stronger one.
 
 Its files keep the name the mod first had, SN Sexual History: the plugin is `SN_SexualHistory.esp`
 and the SKSE plugin `SN_SexualHistory.dll`, so saves and settings carry over.
@@ -29,10 +38,11 @@ to say:
   NPC nearby, drawing on what just happened, on what your character remembers (about that person
   above all) and on how the two of you stand. The NPC answers, and the line is shown as a subtitle.
 - **Relationship map** (needs Magelight UI or Prisma UI). Press a key (Y by default) to open it,
-  choose yourself or an NPC nearby, and SkyrimNet's AI writes what lies between them and up to ten
-  people around you: what happened between them, in order, how each feels about the other, the key
+  choose yourself or an NPC nearby, take anyone you do not want off the list, press Create, and
+  SkyrimNet's AI writes what lies between them and up to ten people around you: what happened between them, in order, how each feels about the other, the key
   events, and how the others are tied to each other. It reads both sides' memories, their diaries
-  and SkyrimNet's events, and writes only what those records say. A button remakes the map in
+  and SkyrimNet's events, and writes only what those records say. Cards of people from earlier
+  maps of the same person are kept below, as they were when made. A button remakes the map in
   English. With Phantasm installed, everyone's face is shown on the map.
 
 Each participant's memory is written in first person and covers:
@@ -136,8 +146,11 @@ When your character speaks up, the line is written with the bundled prompt
 player, shown in the game's dialogue subtitle (when dialogue subtitles are on), and passed to the
 NPC as something your character said, so they answer.
 
-The relationship map puts the chosen person in the middle and, around them, up to ten people near
-you, nearest first (you too, when an NPC is chosen), whether or not the records tie them together.
+Opening the map or choosing someone only shows a map already made: nothing is sent to the AI until
+you press Create (or Refresh). The map puts the chosen person in the middle and, around them, up
+to ten people from the list on the left, nearest first (you too, when an NPC is chosen), whether or
+not the records tie them together; the × next to a name leaves that person off the maps you make
+until you close the map.
 For each of them it sends one request with the bundled prompt `sn_sexual_memories_relmap`: what
 each of the two remembers of the other (most important first), the passages of their latest
 diaries that name the other, the centre's events that name them, what the others in the circle
@@ -146,8 +159,8 @@ request, `sn_sexual_memories_relmap_summary`, sums the circle up. The AI is told
 those records say, never to take events from the character profiles or Skyrim's usual
 storylines, and never to say that two people have nothing to do with each other: the records read
 are only part of what happened. The map is saved for each save and shown again until you press
-Refresh. Its AI model and answer length can be set apart from SkyrimNet's other requests in
-SkyrimNet's plugin settings (SNSexualMemories).
+Refresh. When a map is made again, the people of the earlier map who are not on the new one keep
+their cards under "Earlier records", folded and dated, with a name filter over all cards. Its AI model is set in SkyrimNet's dashboard: AI > Models, `sn_sexual_memories_relmap`.
 
 The memories are written in the language of the character profiles and the events, so a game
 played in Japanese gets Japanese memories. The relationship map is written in the language of the
@@ -216,7 +229,7 @@ relationship map's page are laid out in `dist/`. Compile the scripts with the Cr
 
 ## Files
 
-- `SN_SexualHistory_0.4.0.zip`: the mod as a FOMOD installer, with the settings menu in English
+- `SN_SexualHistory_0.4.1.zip`: the mod as a FOMOD installer, with the settings menu in English
   or Japanese, and with `THIRD_PARTY_NOTICES.txt` and `COPYING.txt` (see License). Without an
   installer, use `core/<language>/` from the archive.
 

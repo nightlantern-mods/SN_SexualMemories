@@ -1,9 +1,9 @@
 # SN Sexual Memories - settings schema. The filename names the config (Plugin_SNSexualMemories).
-# The variant lets the relationship map use its own model; set it in SkyrimNet's plugin settings.
-# Without an override it uses SkyrimNet's base model.
+# The variant gives the relationship map its own model: players set it in SkyrimNet's dashboard,
+# AI > Models, sn_sexual_memories_relmap.
 plugin:
   name: SNSexualMemories
-  version: "0.4.0"
+  version: "0.4.1"
   description: "SN Sexual Memories: scene memories, lines during scenes, complaints, your character speaking up, and the relationship map."
 
 variants:
