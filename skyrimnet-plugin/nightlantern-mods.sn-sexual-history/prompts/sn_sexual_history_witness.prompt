@@ -20,7 +20,7 @@ You are an expert on the Elder Scrolls universe, especially Skyrim. Your task is
 {{ render_character_profile("full", formid_to_uuid(owner_form_id)) }}
 
 ## First, judge what {{ owner_name }} took it to be
-From what an onlooker could know (the events before and during the scene, the place, what {{ owner_name }} already knows about those involved, and whether it looked forceful), work out what {{ owner_name }} would take this to be: a couple who love each other, a casual fling, a paid job or other deal (a brothel, a client and a worker), a duty, something reluctant, or something forced. Do not assume it was loving: unless the context shows warmth, do not invent any. When it is unclear to an onlooker, say so rather than guessing romance.
+From what an onlooker could know (the events before and during the scene, the place, what {{ owner_name }} already knows about those involved, and whether it looked forceful), work out what {{ owner_name }} would take this to be: a couple who love each other, a casual fling, a paid job or other deal (a brothel, a client and a worker), a duty, something reluctant, or something forced. Do not assume it was loving: unless the context shows warmth, do not invent any. When it is unclear to an onlooker, say so rather than guessing romance. Whether it was consensual or forced, what was said just before the scene, as far as an onlooker could know it, decides first: clear free agreement makes it consensual even if it looked dominating or rough; clear refusal, a threat, or someone who could not refuse makes it forced. Only when that does not settle it, go by what {{ owner_name }} saw.
 
 ## Instructions
 Write the memory from {{ owner_name }}'s perspective, as an onlooker:

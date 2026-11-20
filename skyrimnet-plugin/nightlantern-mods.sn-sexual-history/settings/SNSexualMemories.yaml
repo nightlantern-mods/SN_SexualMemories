@@ -3,7 +3,7 @@
 # AI > Models, sn_sexual_memories_relmap.
 plugin:
   name: SNSexualMemories
-  version: "0.4.1"
+  version: "0.4.2"
   description: "SN Sexual Memories: scene memories, lines during scenes, complaints, your character speaking up, and the relationship map."
 
 variants:

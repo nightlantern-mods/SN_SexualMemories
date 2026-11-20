@@ -331,6 +331,14 @@ String Function SceneNarration(Actor[] actors, String facts, Int arousal, Actor 
 			text += speakerName + "'s arousal is at about " + arousal + " out of 100. "
 		EndIf
 	EndIf
+	; What was said just before the scene comes first, both ways; the framework's signals (above)
+	; decide only when it does not settle whether it is consensual.
+	If forced
+		text += "First judge from what was said just before this scene began (the recent conversation). If it clearly shows that the one it is being done to agreed to it freely, they are a willing partner even though the scene is dominating or rough, and the instructions below about not wanting it do not apply. " \
+			+ "Agreeing under threat, or when one could not refuse (a captive, someone defeated or overpowered), is not agreeing freely. Only when the conversation does not make it clear, follow these instructions: "
+	Else
+		text += "If what was said just before this scene began clearly shows it is against someone's will (agreeing under threat, or when one could not refuse, is not agreeing), the one it is done to does not want it: no enthusiasm, consent or eagerness from them. "
+	EndIf
 	If speakerPassive
 		text += "This is being done to " + speakerName + " against " + speakerName + "'s will. The line must show that " + speakerName 			+ " does not want it: reluctance, fear, anger, disgust, shame, pleading or resistance, as fits " + speakerName 			+ ". Never enthusiasm, consent, eagerness or asking for more. At most, " + speakerName 			+ " may admit with dismay or shame that their body is reacting despite themselves. "
 	ElseIf speakerForcing

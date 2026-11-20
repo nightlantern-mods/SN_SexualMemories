@@ -1,4 +1,4 @@
-# SN Sexual Memories 0.4.1
+# SN Sexual Memories 0.4.2
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
 
@@ -29,9 +29,10 @@ to say:
 - **A witness remembers too.** One bystander who saw the scene, picked at random among the NPCs
   nearby, gets a memory of what they saw and what they made of it. When nobody saw it, nobody does.
 - **Lines during scenes.** Every so often an NPC in a running scene says a line about what is
-  happening, written and voiced by SkyrimNet. With several NPCs, they take turns. In a forced or
-  rough scene, the one it is done to never sounds willing: at most they admit, with dismay, that
-  their body reacts.
+  happening, written and voiced by SkyrimNet. With several NPCs, they take turns. In a forced
+  scene, the one it is done to never sounds willing: at most they admit, with dismay, that their
+  body reacts. When the conversation just before the scene shows they agreed to it, they play it
+  as a willing partner instead, even in a dominating or rough scene.
 - **Complaints about a partner.** Now and then an NPC near you who has a husband, wife or lover
   complains to you about them, but only while that partner is out of earshot.
 - **Your character speaks up** (off by default). Now and then your character says something to an
@@ -49,7 +50,8 @@ Each participant's memory is written in first person and covers:
 
 - what kind of encounter it was for them, judged by the AI from what happened before and during
   it, the place and their relationship: loving, casual, a paid job or other deal, a duty,
-  reluctant or forced. Sex is not taken as affection;
+  reluctant or forced. Whether it was consensual is judged first from what was said just before
+  the scene. Sex is not taken as affection;
 - who took part, where and when;
 - what happened in the scene: the animations played, the acts and who climaxed;
 - what was said and done around it, from SkyrimNet's event history just before and during the
@@ -133,7 +135,12 @@ The lines during scenes go through SkyrimNet's direct narration: the narration s
 happening, and the speaker's own character, memories and the recent conversation shape the line.
 A scene counts as forced when SexLab marks it as non-consensual or aggressive (it also says who is
 on the receiving end), or for OStim when OStimNet's intent is aggressive or dom or the animation's
-tags say so.
+tags say so. The AI is told to judge first from the conversation just before the scene: when it
+clearly shows the one on the receiving end agreed freely, they play it as consensual; when it
+clearly shows it is against their will, as forced. Agreeing under threat, or when one could not
+refuse (a captive, someone defeated), does not count as agreeing. Only when the conversation does
+not settle it does the scene's own marking decide. This is the AI's judgement, so it is not
+guaranteed.
 
 A complaint comes from a random NPC within SkyrimNet's talking distance of you who has a
 relationship at the Lover level (spouses and lovers) with someone other than you, when that
@@ -229,7 +236,7 @@ relationship map's page are laid out in `dist/`. Compile the scripts with the Cr
 
 ## Files
 
-- `SN_SexualHistory_0.4.1.zip`: the mod as a FOMOD installer, with the settings menu in English
+- `SN_SexualHistory_0.4.2.zip`: the mod as a FOMOD installer, with the settings menu in English
   or Japanese, and with `THIRD_PARTY_NOTICES.txt` and `COPYING.txt` (see License). Without an
   installer, use `core/<language>/` from the archive.
 

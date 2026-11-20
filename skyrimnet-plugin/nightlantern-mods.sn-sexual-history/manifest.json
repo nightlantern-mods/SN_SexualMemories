@@ -6,7 +6,7 @@
   "description": "Prompts for SN Sexual Memories (SN_SexualHistory.dll). When an OStim or SexLab scene ends, SN_SexualHistory.dll gathers who took part, the place, the animations played, who climaxed, the SkyrimNet events recorded during the scene and each participant's relevant memories, and sends them with the sn_sexual_history_memory prompt once for every participant, the player included. The answer is stored as that participant's memory. When a bystander saw the scene, the sn_sexual_history_witness prompt writes that bystander's memory of what they saw. When the MCM option is on, the sn_sexual_history_player_talk prompt writes a line the player says to an NPC nearby.",
   "author": "nightlantern-mods",
   "icon": "heart",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "min_skyrimnet_version": "0.25.0",
   "mods": [
     {
