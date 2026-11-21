@@ -1,12 +1,16 @@
 # SN Sexual Memories - settings schema. The filename names the config (Plugin_SNSexualMemories).
-# The variant gives the relationship map its own model: players set it in SkyrimNet's dashboard,
-# AI > Models, sn_sexual_memories_relmap.
+# The variants give the scene memories, the diary entries and the relationship map their own
+# models: players set them in SkyrimNet's dashboard, AI > Models.
 plugin:
   name: SNSexualMemories
-  version: "0.4.2"
-  description: "SN Sexual Memories: scene memories, lines during scenes, complaints, your character speaking up, and the relationship map."
+  version: "0.4.3"
+  description: "SN Sexual Memories: scene memories, diary entries after scenes, lines during scenes, complaints, your character speaking up, and the relationship map."
 
 variants:
+  - name: sn_sexual_memories_memory
+    description: "Writes the memories of a scene: one request per person who took part, and one for a witness. Answers in JSON."
+  - name: sn_sexual_memories_diary
+    description: "Writes the diary entry each person who took part writes after a scene (only when the MCM's diary option is on): one request per person. Answers in JSON."
   - name: sn_sexual_memories_relmap
     description: "Draws the relationship map: one request per person around the centre (what happened between them and how they feel, from their memories and events), then one for the summary. Answers in JSON; a model that follows JSON instructions well is best."
 

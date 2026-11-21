@@ -1,4 +1,4 @@
-# SN Sexual Memories 0.4.2
+# SN Sexual Memories 0.4.3
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
 
@@ -17,6 +17,21 @@
 > expensive default model each map can cost noticeably. To keep costs down, enter a cheaper model
 > there; to get fuller maps, a stronger one.
 
+> [!NOTE]
+> **Diary entries after scenes (off by default).** When it is on, everyone who took part in a scene,
+> the player too, writes a private diary entry in their own voice, stored as their SkyrimNet diary
+> entry. It does not retell the scene (the scene memory keeps that); it is what they never say
+> aloud. Turn it on in the MCM ("Diary entries after scenes"). It is one more request to your LLM
+> per person per scene.
+> - **Its model is set in SkyrimNet's dashboard: AI > Models, `sn_sexual_memories_diary`** (this
+>   mod's own card, not SkyrimNet's diary model). Left empty, it uses SkyrimNet's `default` model.
+> - When SkyrimNet also writes its usual diary entries, the same scene may appear in both.
+> - To try it out, we recommend setting an inexpensive model on that card.
+> - An entry can fail to be written: the model may decline to write about a sexual scene or give
+>   an answer that cannot be used, the request may fail, or SkyrimNet may refuse the entry (for
+>   example while a save is still loading). Then that person gets no entry for that scene; the scene
+>   memories are not affected. Failures are recorded in `SN_SexualHistory.log`.
+
 Its files keep the name the mod first had, SN Sexual History: the plugin is `SN_SexualHistory.esp`
 and the SKSE plugin `SN_SexualHistory.dll`, so saves and settings carry over.
 
@@ -26,6 +41,8 @@ to say:
 - **Memories of the scene.** When a scene ends, SkyrimNet's AI writes a memory of it for each
   character who took part, the player included, and stores it as that character's own SkyrimNet
   memory. NPCs then recall it in later conversations like anything else they lived through.
+  Its model is set in SkyrimNet's dashboard: AI > Models, `sn_sexual_memories_memory` (the witness
+  memory uses it too). Left empty, it uses SkyrimNet's `default` model.
 - **A witness remembers too.** One bystander who saw the scene, picked at random among the NPCs
   nearby, gets a memory of what they saw and what they made of it. When nobody saw it, nobody does.
 - **Lines during scenes.** Every so often an NPC in a running scene says a line about what is
@@ -38,6 +55,11 @@ to say:
 - **Your character speaks up** (off by default). Now and then your character says something to an
   NPC nearby, drawing on what just happened, on what your character remembers (about that person
   above all) and on how the two of you stand. The NPC answers, and the line is shown as a subtitle.
+- **Diary entries after scenes** (off by default). After a scene, everyone who took part (you too) writes a
+  private diary entry in their own voice. It does not retell the scene (the memory keeps that):
+  it is what they never say aloud, how things have changed with the others over their history
+  together, what they mean to do next, and how they see their life so far and where it is going,
+  unflattering thoughts included. It is stored as their SkyrimNet diary entry.
 - **Relationship map** (needs Magelight UI or Prisma UI). Press a key (Y by default) to open it,
   choose yourself or an NPC nearby, take anyone you do not want off the list, press Create, and
   SkyrimNet's AI writes what lies between them and up to ten people around you: what happened between them, in order, how each feels about the other, the key
@@ -98,6 +120,7 @@ the game's `Data` folder.
 | Setting | Default | |
 |---|---|---|
 | A witness remembers too | On | One bystander who saw the scene also gets a memory. |
+| Diary entries after scenes | Off | After a scene, everyone who took part (you too) writes a diary entry. One more request per person. |
 | NPCs speak during scenes | On | The lines during scenes. |
 | Time between checks (seconds) | 30 | How often running scenes are looked for. Each check lets one NPC speak; nothing is said while SkyrimNet is still speaking. |
 | Also in your own scenes | On | Off: only scenes between NPCs get lines. |
@@ -129,7 +152,8 @@ The memories of the participants are always made.
 4. It sends one request per participant to the LLM with the bundled prompt
    `sn_sexual_history_memory`, and one for the witness with `sn_sexual_history_witness`, and stores
    each answer with SkyrimNet as that character's memory. A scene with two people and a witness
-   makes three requests.
+   makes three requests. All of them go to the model on the `sn_sexual_memories_memory` card
+   (AI > Models); left empty, SkyrimNet's `default` model.
 
 The lines during scenes go through SkyrimNet's direct narration: the narration says what is
 happening, and the speaker's own character, memories and the recent conversation shape the line.
@@ -182,13 +206,14 @@ by this mod have a mark after the emotion, under the importance:
 - `[Sexual Memories / Witness]` for the witness's memory.
 
 They are also tagged `sexual_history` and `sex` (and `witness`), which shows in the memory's edit
-form.
+form. The diary entries, when that option is on, are tagged `sexual_history` and `sex` too.
 
 ## Changing the prompts
 
 The prompts are a SkyrimNet prompt bundle, `nightlantern-mods.sn-sexual-history`. Copy
 `prompts/sn_sexual_history_memory.prompt`, `prompts/sn_sexual_history_witness.prompt` or
-`prompts/sn_sexual_history_player_talk.prompt` into your SkyrimNet overlay to change how the
+`prompts/sn_sexual_history_player_talk.prompt` (or `prompts/sn_sexual_history_diary.prompt` for
+the diary entries) into your SkyrimNet overlay to change how the
 memories or your character's lines are written, as with any SkyrimNet prompt; the relationship
 map's are `prompts/sn_sexual_memories_relmap.prompt` and
 `prompts/sn_sexual_memories_relmap_summary.prompt`.

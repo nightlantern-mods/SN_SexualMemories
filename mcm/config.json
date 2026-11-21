@@ -18,6 +18,15 @@
 			}
 		},
 		{
+			"id": "bDiary:General",
+			"type": "toggle",
+			"text": "$SNSH_Diary",
+			"help": "$SNSH_DiaryHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
 			"type": "header",
 			"text": "$SNSH_HeaderComments"
 		},

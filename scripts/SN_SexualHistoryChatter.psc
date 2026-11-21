@@ -39,6 +39,7 @@ Function Setup()
 	EndIf
 	RegisterMapKey()
 	PushMapSettings()
+	SN_SexualHistoryNative.SetDiaryEnabled(GetModSettingBool("bDiary:General"))
 EndFunction
 
 Event OnSettingChange(String a_ID)
@@ -48,6 +49,8 @@ Event OnSettingChange(String a_ID)
 		RegisterMapKey()
 	ElseIf StringUtil.Find(a_ID, "iMap") == 0
 		PushMapSettings()
+	ElseIf a_ID == "bDiary:General"
+		SN_SexualHistoryNative.SetDiaryEnabled(GetModSettingBool("bDiary:General"))
 	EndIf
 EndEvent
 

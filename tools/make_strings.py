@@ -18,6 +18,10 @@ STRINGS = [
 
     ('$SNSH_HeaderMemories', 'Memories', '記憶'),
     ('$SNSH_Witness', 'A witness remembers too', '目撃者の記憶も作る'),
+    ('$SNSH_Diary', 'Diary entries after scenes', 'シーンのあとに日記を書く'),
+    ('$SNSH_DiaryHelp',
+     'After a scene, everyone who took part (you too) writes a private diary entry about it, in their own voice. One more AI request per person. Its AI model is set in SkyrimNet\'s dashboard: AI > Models, sn_sexual_memories_diary.',
+     'シーンのあと、参加した人がそれぞれ（プレイヤーも）、自分の言葉で日記を書きます。1人につきAIへの問い合わせが1回増えます。使うAIモデルは、SkyrimNet のダッシュボードの「AI > モデル」にある sn_sexual_memories_diary で設定します。'),
     ('$SNSH_WitnessHelp',
      'When a scene ends, one bystander who saw it (picked at random among the NPCs nearby with the scene in sight, never a child) also gets a memory of what they saw. When nobody saw it, nobody does.',
      'シーンが終わったとき、それを見ていた近くのNPC（シーンが視界に入っていた人から無作為に1人。子どもは除く）にも、見た内容の記憶が作られます。見ていた人がいなければ作られません。'),

@@ -21,6 +21,10 @@ namespace SexualHistory
         constexpr const char* kScriptName = "SN_SexualHistoryNative";
         constexpr const char* kPromptName = "sn_sexual_history_memory";
         constexpr const char* kWitnessPromptName = "sn_sexual_history_witness";
+        constexpr const char* kMemoryVariant = "sn_sexual_memories_memory";  // scene and witness memories, its own card
+        constexpr const char* kDiaryPromptName = "sn_sexual_history_diary";
+        constexpr const char* kDiaryVariant = "sn_sexual_memories_diary";  // its own card in AI > Models
+        std::atomic<bool>     g_diaryEnabled = false;                     // MCM bDiary, off by default
         constexpr RE::FormID  kPlayerID = 0x14;
         constexpr const char* kDashboardMarker = "[Sexual Memories]";
         constexpr const char* kWitnessMarker = "[Sexual Memories / Witness]";
@@ -353,6 +357,9 @@ namespace SexualHistory
             }
         }
 
+        void WriteDiaries(std::shared_ptr<const Scene> a_scene, const SceneEventLines& a_events,
+            const std::map<RE::FormID, std::vector<std::string>>& a_memories);
+
         // Runs on its own thread once a scene has ended.
         void Process(std::shared_ptr<const Scene> a_scene)
         {
@@ -386,7 +393,7 @@ namespace SexualHistory
             // memories when it writes the player's lines and thoughts.
             for (const auto& owner : a_scene->actors) {
                 const auto context = Dump(BuildContext(*a_scene, owner, events, memories));
-                const bool queued = PublicSendCustomPromptToLLM(kPromptName, "", context.c_str(),
+                const bool queued = PublicSendCustomPromptToLLM(kPromptName, kMemoryVariant, context.c_str(),
                     [a_scene, owner](const char* a_response, int a_success) {
                         const std::string response = a_response ? a_response : "";
                         if (a_success == 1) {
@@ -404,7 +411,7 @@ namespace SexualHistory
             if (witness) {
                 const auto context = Dump(BuildContext(*a_scene, *witness, events, memories));
                 const auto owner = *witness;
-                const bool queued = PublicSendCustomPromptToLLM(kWitnessPromptName, "", context.c_str(),
+                const bool queued = PublicSendCustomPromptToLLM(kWitnessPromptName, kMemoryVariant, context.c_str(),
                     [a_scene, owner](const char* a_response, int a_success) {
                         const std::string response = a_response ? a_response : "";
                         if (a_success == 1) {
@@ -416,6 +423,11 @@ namespace SexualHistory
                 if (!queued) {
                     logger::error("Could not queue the witness memory for {}", owner.name);
                 }
+            }
+
+            // The NPCs' diary entries, when the MCM asks for them.
+            if (g_diaryEnabled) {
+                WriteDiaries(a_scene, events, memories);
             }
         }
 
@@ -954,6 +966,148 @@ namespace SexualHistory
                 }
             }
             return "";
+        }
+
+        // ---- Diary entries after a scene (MCM bDiary) ----------------------------------------
+
+        json ParseLooseJson(const std::string& a_response);  // below, with the relationship map
+
+        // The character's latest diary entries (up to 3), oldest first, for continuity.
+        json RecentDiaries(RE::FormID a_owner)
+        {
+            json texts = json::array();
+            if (!PublicQueryDiaryEntries) {
+                return texts;
+            }
+            DiaryQuery query;
+            query.maxCount = 3;
+            query.orderBy = DiaryOrder::EntryDateDesc;
+            const auto entries = ParseArray(QueryDiaryEntries(a_owner, query));
+            for (auto it = entries.rbegin(); it != entries.rend(); ++it) {
+                if (auto text = DiaryText(*it); !text.empty()) {
+                    texts.push_back(TruncateChars(text, 900));
+                }
+            }
+            return texts;
+        }
+
+        std::string MemoryText(const json& a_memory)
+        {
+            return a_memory.is_object() && a_memory.contains("text") && a_memory["text"].is_string() ?
+                       a_memory["text"].get<std::string>() :
+                       std::string();
+        }
+
+        // What the diary looks back on, besides the scene: for every other participant, the owner's
+        // memories that name them, oldest first (the first two and the latest six, so the change
+        // over time shows); and the owner's most important memories that are about none of them
+        // (their life so far).
+        void AddDiaryHistory(json& a_context, const Scene& a_scene, const Participant& a_owner)
+        {
+            json history = json::array();
+            json life = json::array();
+            if (PublicQueryMemoriesForActor) {
+                MemoryQuery query;
+                query.maxCount = 300;
+                query.orderBy = MemoryOrder::GameTimeAsc;
+                const auto all = ParseArray(QueryMemoriesForActor(a_owner.formID, query));
+                std::vector<std::vector<std::string>> nameSets;
+                for (const auto& other : a_scene.actors) {
+                    if (other.formID == a_owner.formID) {
+                        continue;
+                    }
+                    const auto names = NameVariants(other.name);
+                    nameSets.push_back(names);
+                    std::vector<std::string> naming;
+                    for (const auto& memory : all) {
+                        const auto text = MemoryText(memory);
+                        if (std::ranges::any_of(names, [&](const auto& n) { return text.find(n) != std::string::npos; })) {
+                            naming.push_back(TruncateChars(text, 400));
+                        }
+                    }
+                    json picked = json::array();
+                    for (std::size_t i = 0; i < naming.size(); ++i) {
+                        if (i < 2 || i + 6 >= naming.size()) {
+                            picked.push_back(naming[i]);
+                        }
+                    }
+                    history.push_back({
+                        { "name", other.name },
+                        { "is_player", other.formID == kPlayerID },
+                        { "count", naming.size() },
+                        { "memories", picked },
+                    });
+                }
+                query.maxCount = 40;
+                query.orderBy = MemoryOrder::ImportanceDesc;
+                for (const auto& memory : ParseArray(QueryMemoriesForActor(a_owner.formID, query))) {
+                    if (life.size() >= 8) {
+                        break;
+                    }
+                    const auto text = MemoryText(memory);
+                    const bool aboutThem = std::ranges::any_of(nameSets, [&](const auto& names) {
+                        return std::ranges::any_of(names, [&](const auto& n) { return text.find(n) != std::string::npos; });
+                    });
+                    if (!text.empty() && !aboutThem) {
+                        life.push_back(TruncateChars(text, 300));
+                    }
+                }
+            }
+            a_context["history_with"] = history;
+            a_context["life_memories"] = life;
+            a_context["recent_diaries"] = RecentDiaries(a_owner.formID);
+        }
+
+        // Stores the answer as the owner's diary entry. Runs on SkyrimNet's worker thread (the call
+        // blocks while the entry's memory is embedded).
+        void StoreDiary(const Scene& a_scene, const Participant& a_owner, const std::string& a_response)
+        {
+            const auto answer = ParseLooseJson(a_response);
+            std::string content = answer.is_object() ? answer.value("content", std::string()) : std::string();
+            if (content.empty()) {
+                logger::error("Empty diary entry for {}: {}", a_owner.name, Truncate(a_response, 300));
+                return;
+            }
+            const auto emotion = answer.value("emotion", std::string());
+            float      importance = 0.6f;
+            if (answer.contains("importance_score") && answer["importance_score"].is_number()) {
+                importance = answer["importance_score"].get<float>();
+            }
+            importance = std::clamp(importance, 0.5f, 0.75f);  // below the scene memory's 0.8
+            const auto id = PublicAddDiaryEntry(a_owner.formID, content.c_str(), 0.0, "sexual_history,sex",
+                emotion.empty() ? nullptr : emotion.c_str(), importance, a_scene.location.c_str());
+            if (id > 0) {
+                logger::info("Diary entry {} for {} ({:08X}), {} {:.2f}: {}", id, a_owner.name, a_owner.formID, emotion, importance, content);
+            } else {
+                logger::error("SkyrimNet refused the diary entry for {} ({:08X})", a_owner.name, a_owner.formID);
+            }
+        }
+
+        // One diary entry for everyone who took part (the player too), written by this mod's
+        // prompt on its own variant, so its model is set apart from SkyrimNet's diaries.
+        void WriteDiaries(std::shared_ptr<const Scene> a_scene, const SceneEventLines& a_events,
+            const std::map<RE::FormID, std::vector<std::string>>& a_memories)
+        {
+            if (!PublicAddDiaryEntry) {
+                logger::warn("SkyrimNet API without diary writes (before v11); no diary entries");
+                return;
+            }
+            for (const auto& owner : a_scene->actors) {
+                auto context = BuildContext(*a_scene, owner, a_events, a_memories);
+                AddDiaryHistory(context, *a_scene, owner);
+                const bool queued = PublicSendCustomPromptToLLM(kDiaryPromptName, kDiaryVariant, Dump(context).c_str(),
+                    [a_scene, owner](const char* a_response, int a_success) {
+                        const std::string response = a_response ? a_response : "";
+                        if (a_success == 1) {
+                            StoreDiary(*a_scene, owner, response);
+                        } else {
+                            logger::error("Diary entry for {} failed: {}", owner.name, response);
+                        }
+                    });
+                if (!queued) {
+                    logger::error("Could not queue the diary entry for {}", owner.name);
+                }
+            }
         }
 
         // Up to a_max passages from a_diaries that name someone: the text around each mention, up to
@@ -1698,6 +1852,13 @@ namespace SexualHistory
             }
         };
 
+        // MCM bDiary: a diary entry for the NPCs after every scene.
+        void SetDiaryEnabled(RE::StaticFunctionTag*, bool a_enabled)
+        {
+            g_diaryEnabled = a_enabled;
+            logger::info("Diary entries after scenes: {}", a_enabled ? "on" : "off");
+        }
+
         void SetMapSettings(RE::StaticFunctionTag*, int32_t a_memoryScan, int32_t a_memoriesUsed, int32_t a_eventScan, int32_t a_diaryScan,
             int32_t a_textChars)
         {
@@ -1770,6 +1931,7 @@ namespace SexualHistory
         a_vm->RegisterFunction("OpenRelationshipMap", kScriptName, OpenRelationshipMap);
         a_vm->RegisterFunction("RelationshipMapAvailable", kScriptName, RelationshipMapAvailable);
         a_vm->RegisterFunction("SetMapSettings", kScriptName, SetMapSettings);
+        a_vm->RegisterFunction("SetDiaryEnabled", kScriptName, SetDiaryEnabled);
         return true;
     }
 

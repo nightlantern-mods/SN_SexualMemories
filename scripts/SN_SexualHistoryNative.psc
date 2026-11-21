@@ -42,6 +42,9 @@ Bool Function OpenRelationshipMap(Actor akAimed) Global Native
 ; person (latest first), and the characters kept of one memory, event or diary passage.
 Function SetMapSettings(Int aiMemoryScan, Int aiMemoriesUsed, Int aiEventScan, Int aiDiaryScan, Int aiTextChars) Global Native
 
+; Whether every NPC who took part in a scene also writes a diary entry about it (MCM bDiary).
+Function SetDiaryEnabled(Bool abEnabled) Global Native
+
 ; True when Magelight UI or Prisma UI is installed, so the relationship map can be shown.
 Bool Function RelationshipMapAvailable() Global Native
 

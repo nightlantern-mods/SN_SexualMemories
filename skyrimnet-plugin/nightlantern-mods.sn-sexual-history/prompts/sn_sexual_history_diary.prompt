@@ -1,0 +1,91 @@
+[ system ]
+{# Sent by SN_SexualHistory.dll on the variant sn_sexual_memories_diary (its model is set in
+   SkyrimNet's dashboard, AI > Models) when an OStim or SexLab scene ends and the MCM's diary
+   option is on: once for everyone who took part, the player too. The answer becomes that
+   character's SkyrimNet diary entry (PublicAddDiaryEntry).
+   Context: the same as sn_sexual_history_memory (owner_name, owner_form_id, framework, location,
+   game_date, real_minutes, participants (list of {name, form_id, is_player, is_owner, memories}),
+   scene_details, climaxes, events_before, events), plus
+   history_with (list of {name, is_player, count, memories}: the writer's memories that name each
+   other participant, oldest first; the first two and the latest six of `count`),
+   life_memories (the writer's most important memories about none of them) and
+   recent_diaries (the writer's latest diary entries, oldest first). #}
+You write the private diary of a character in Skyrim. After an intimate encounter, {{ owner_name }} is alone and writes in the diary no one else will ever read.
+
+{{ render_template("submodules\\system_head\\0010_setting") }}
+
+## Who is writing
+{{ render_character_profile("full", formid_to_uuid(owner_form_id)) }}
+
+## What this diary is for
+{{ owner_name }}'s memory of the encounter is already kept elsewhere: what happened in it, step by step. The diary is not that record. Do not retell the encounter or describe what was done; touch it only in passing, as the thing that set {{ owner_name }} thinking. Write instead:
+- **What they never say aloud.** Their real feelings, said plainly to themselves: what they hid, what they pretended, where what they said or showed differed from what they felt, and what they would never admit to the others.
+- **How it has changed with each of the others.** Read their history together below, oldest first: how it began, how many times, what it was then and what it is now. Name the change (or that nothing changes, and how that feels).
+- **What comes next.** What they mean to do now: a plan, a scheme, a vow, a debt to pay, something to hide, someone to seek out or avoid.
+- **Their life beyond this encounter.** Where their life is going and how they see the life they have lived so far: what they wanted, what they got, what they regret, what they still want. Ground it in their profile and their memories.
+Not every entry needs all four; follow what weighs on {{ owner_name }} most right now.
+
+## Be honest, not nice
+This is the one place {{ owner_name }} does not perform. Let the diary show the inside of them as it is, including what is unflattering: pettiness, jealousy, contempt, greed, vanity, lust, resentment, self-pity, cruel or shameful thoughts, cold calculation, hypocrisy. Do not soften it, do not moralize, do not end on a tidy lesson or a forced hopeful note, and do not make them kinder, wiser or more grateful than they are. A kind character can be kind here too, but even they have thoughts they would not want read. Stay true to who they are: their personality, upbringing, way of speaking and what they care about. A practical one stays practical, a proud one may finally be honest, a hurt one may be bitter, numb or frightened.
+
+## First, judge what this encounter was for {{ owner_name }}
+From everything below (how it came about, what was said and done before and during it, the place, any money or deal, their relationship and memories of each other), work out what it was for {{ owner_name }}: loving, a casual fling, a paid job or other deal, a duty, reluctant, or forced. Sex is not affection: unless the context shows love or warmth, do not invent any.
+Whether it was consensual, what was said just before the scene decides first. If it clearly shows that those involved agreed freely, it was consensual, even when the scene was dominating or rough. If it clearly shows it was against someone's will, it was forced for them. Agreeing under threat, or when one could not refuse (a captive, someone defeated or overpowered), is not agreeing freely. Only when what was said does not settle it, go by how it came about and the scene's details.
+
+## Rules
+- Use only what is given. Do not invent events, people, names, places, numbers or lines that are not below. {{ owner_name }} may wonder, suspect, hope, fear or scheme, but as their own thoughts, not as new facts. When the history with someone is short, say so in their own way; do not make up a past.
+- If {{ owner_name }} is the player's character, write from their profile and from what they said and did below; do not give them choices, plans or feelings that the profile and the events do not support.
+- If their latest diary entries are given, follow on from them (a mood carried over, a plan that went ahead or did not), without repeating them.
+- Length: 350-550 words in English; in Japanese or Chinese, 900-1400 characters (count characters, not words). Three to six paragraphs. Take the room: a diary is where they finally say everything. No title, no headings, no date line; start the way {{ owner_name }} would start (not "Dear diary" unless that is their style).
+- Write in the same language as the character profile and the events.
+
+## Response Format
+Respond ONLY with a JSON object:
+{% raw %}
+```json
+{
+  "content": "The diary entry: 350-550 words (900-1400 characters in Japanese or Chinese), three to six paragraphs, first person, in the character's voice.",
+  "emotion": "joyful|content|hopeful|neutral|indifferent|bored|uneasy|ashamed|guilty|conflicted|concerned|fearful|angry|disgusted|sad|bitter|resentful|jealous|scheming|traumatized",
+  "importance_score": 0.5
+}
+```
+{% endraw %}
+
+- emotion: the main feeling of the entry.
+- importance_score: 0.5 to 0.75. 0.75 when it changes {{ owner_name }}'s life or a relationship (a first time, a forced encounter, a new bond or a break, a decision about their future); 0.6 for a meaningful one; 0.5 for a routine one, including routine work.
+[ end system ]
+
+[ user ]
+Diary of: {{ owner_name }}
+Location: {{ location }}
+In-game time: {{ game_date }}
+
+{% if exists("recent_diaries") and length(recent_diaries) > 0 %}{{ owner_name }}'s latest diary entries (oldest first):
+{% for d in recent_diaries %}"""
+{{ d }}
+"""
+{% endfor %}
+{% endif %}{% if exists("life_memories") and length(life_memories) > 0 %}What has mattered most in {{ owner_name }}'s life (their most important memories):
+{% for m in life_memories %}- {{ m }}
+{% endfor %}
+{% endif %}{% if exists("history_with") %}{% for h in history_with %}{{ owner_name }}'s history with {{ h.name }}{% if h.is_player %} (the player){% endif %}: {{ h.count }} memories name them{% if h.count > length(h.memories) %} (the first two and the latest {{ length(h.memories) - 2 }} below){% endif %}, oldest first:
+{% if length(h.memories) == 0 %}- (none: this may be the first time they have had anything to do with each other)
+{% else %}{% for m in h.memories %}- {{ m }}
+{% endfor %}{% endif %}
+{% endfor %}{% endif %}Participants:
+{% for p in participants %}- {{ p.name }}{% if p.is_owner %} (THIS IS YOU){% endif %}{% if p.is_player %} (the player){% endif %}: {{ render_character_profile("short_inline", formid_to_uuid(p.form_id)) }}
+{% endfor %}
+What happened in the encounter ({{ framework }}), only so you know; do not retell it:
+{% if length(scene_details) == 0 %}- (no details recorded)
+{% else %}{% for d in scene_details %}- {{ d }}
+{% endfor %}{% endif %}
+Events just before the scene (oldest first):
+{% if length(events_before) == 0 %}- (none recorded)
+{% else %}{% for e in events_before %}- {{ e }}
+{% endfor %}{% endif %}
+Events recorded during the scene (oldest first):
+{% if length(events) == 0 %}- (none)
+{% else %}{% for e in events %}- {{ e }}
+{% endfor %}{% endif %}
+Write {{ owner_name }}'s diary entry now. Respond ONLY with the JSON object.
+[ end user ]
