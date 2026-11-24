@@ -28,6 +28,10 @@ Actor[] Function LoadedPartners(Actor akActor) Global Native
 ; True while the actor is in an OStim or SexLab scene this plugin is following.
 Bool Function InScene(Actor akActor) Global Native
 
+; The player's followers within afRange of the player (teammates, or CurrentFollowerFaction
+; rank 0 or above), living adult NPCs only, nearest first.
+Actor[] Function NearbyFollowers(Float afRange) Global Native
+
 ; Has the LLM write a line the player says to akTarget (from recent events, the player's memories
 ; and their relationship, aiRelationshipRank being akTarget's rank to the player); the player then
 ; says it and akTarget answers. False when a line is already being written.

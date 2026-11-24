@@ -587,6 +587,39 @@ namespace SexualHistory
             return found;
         }
 
+        // The player's followers within a_range of the player: teammates, or members of the game's
+        // CurrentFollowerFaction (rank 0 or above). Living adult NPCs only, nearest first.
+        std::vector<RE::Actor*> NearbyFollowers(RE::StaticFunctionTag*, float a_range)
+        {
+            std::vector<std::pair<RE::Actor*, float>> found;
+            auto* player = RE::PlayerCharacter::GetSingleton();
+            auto* lists = RE::ProcessLists::GetSingleton();
+            auto* followerFaction = RE::TESForm::LookupByID<RE::TESFaction>(0x0005C84E);  // CurrentFollowerFaction
+            auto* npcKeyword = RE::TESForm::LookupByEditorID<RE::BGSKeyword>("ActorTypeNPC");
+            if (!player || !lists) {
+                return {};
+            }
+            lists->ForEachHighActor([&](RE::Actor* a_actor) {
+                if (!a_actor || a_actor == player || a_actor->IsDead() || a_actor->IsChild() ||
+                    (npcKeyword && !a_actor->HasKeyword(npcKeyword))) {
+                    return RE::BSContainer::ForEachResult::kContinue;
+                }
+                const bool follower = a_actor->IsPlayerTeammate() ||
+                                      (followerFaction && a_actor->IsInFaction(followerFaction) && a_actor->GetFactionRank(followerFaction, false) >= 0);
+                const float distance = player->GetPosition().GetDistance(a_actor->GetPosition());
+                if (follower && distance <= a_range) {
+                    found.emplace_back(a_actor, distance);
+                }
+                return RE::BSContainer::ForEachResult::kContinue;
+            });
+            std::ranges::sort(found, {}, &std::pair<RE::Actor*, float>::second);
+            std::vector<RE::Actor*> actors;
+            for (const auto& [actor, distance] : found) {
+                actors.push_back(actor);
+            }
+            return actors;
+        }
+
         // True while the actor is in an OStim or SexLab scene this plugin is following.
         bool InScene(RE::StaticFunctionTag*, RE::Actor* a_actor)
         {
@@ -1927,6 +1960,7 @@ namespace SexualHistory
         a_vm->RegisterFunction("PartnerDescription", kScriptName, PartnerDescription);
         a_vm->RegisterFunction("LoadedPartners", kScriptName, LoadedPartners);
         a_vm->RegisterFunction("InScene", kScriptName, InScene);
+        a_vm->RegisterFunction("NearbyFollowers", kScriptName, NearbyFollowers);
         a_vm->RegisterFunction("PlayerTalk", kScriptName, PlayerTalk);
         a_vm->RegisterFunction("OpenRelationshipMap", kScriptName, OpenRelationshipMap);
         a_vm->RegisterFunction("RelationshipMapAvailable", kScriptName, RelationshipMapAvailable);

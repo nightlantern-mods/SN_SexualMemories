@@ -59,6 +59,16 @@ STRINGS = [
     ('$SNSH_SexWomen', 'Women only', '女性だけ'),
     ('$SNSH_SexMen', 'Men only', '男性だけ'),
 
+    ('$SNSH_HeaderGossip', 'Followers talk behind your back', 'フォロワーの陰口'),
+    ('$SNSH_Gossip', 'Followers gossip about you', 'フォロワーが陰口を言う'),
+    ('$SNSH_GossipHelp',
+     'When two or more of your followers are near you, now and then one of them talks about you to another behind your back, thinking you cannot hear. You hear every word. SkyrimNet writes and voices it, from their character, their memories and how they feel about you.',
+     'フォロワーが2人以上近くにいるとき、ときどき1人が別のフォロワーに、あなたの陰口を言います。本人たちはあなたに聞こえていないと思っていますが、あなたには全部聞こえています。台詞は、話す人の性格、記憶、あなたへの気持ちをもとに SkyrimNet が作って声に出します。'),
+    ('$SNSH_GossipInterval', 'Time between chances (seconds)', 'きっかけの間隔（秒）'),
+    ('$SNSH_GossipIntervalHelp',
+     'How often a chance comes. Nothing is said with fewer than two followers near you, in combat, in a menu or while SkyrimNet is speaking.',
+     'きっかけが来る間隔です。近くのフォロワーが2人未満のとき、戦闘中、メニューを開いているとき、SkyrimNet が話している間は言いません。'),
+
     ('$SNSH_HeaderPlayerTalk', 'Your character speaks up', 'プレイヤーの話しかけ'),
     ('$SNSH_PlayerTalk', 'Speak to people nearby', '近くの人に話しかける'),
     ('$SNSH_PlayerTalkHelp',

@@ -116,6 +116,32 @@
 		},
 		{
 			"type": "header",
+			"text": "$SNSH_HeaderGossip"
+		},
+		{
+			"id": "bGossip:General",
+			"type": "toggle",
+			"text": "$SNSH_Gossip",
+			"help": "$SNSH_GossipHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
+			"id": "iGossipInterval:General",
+			"type": "slider",
+			"text": "$SNSH_GossipInterval",
+			"help": "$SNSH_GossipIntervalHelp",
+			"valueOptions": {
+				"min": 30,
+				"max": 3600,
+				"step": 30,
+				"formatString": "{0}",
+				"sourceType": "ModSettingInt"
+			}
+		},
+		{
+			"type": "header",
 			"text": "$SNSH_HeaderPlayerTalk"
 		},
 		{

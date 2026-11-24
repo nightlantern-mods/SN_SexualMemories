@@ -3,8 +3,8 @@
 # models: players set them in SkyrimNet's dashboard, AI > Models.
 plugin:
   name: SNSexualMemories
-  version: "0.4.3"
-  description: "SN Sexual Memories: scene memories, diary entries after scenes, lines during scenes, complaints, your character speaking up, and the relationship map."
+  version: "0.4.4"
+  description: "SN Sexual Memories: scene memories, diary entries after scenes, lines during scenes, complaints, your character speaking up, followers talking behind your back, and the relationship map."
 
 variants:
   - name: sn_sexual_memories_memory

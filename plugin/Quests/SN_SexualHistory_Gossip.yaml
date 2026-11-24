@@ -1,0 +1,20 @@
+FormKey: 000804:SN_SexualHistory.esp
+EditorID: SN_SexualHistory_Gossip
+VirtualMachineAdapter:
+  Scripts: []
+  FileName: ''
+  Aliases:
+  - Property:
+      Name: ''
+      Object: 000804:SN_SexualHistory.esp
+      Alias: 0
+    Scripts:
+    - Name: SN_SexualHistoryGossip
+Flags:
+- StartGameEnabled
+NextAliasID: 1
+Aliases:
+- Name: Player
+  Flags: []
+  ForcedReference: 000014:Skyrim.esm
+  VoiceTypes: Null

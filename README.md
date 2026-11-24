@@ -1,4 +1,4 @@
-# SN Sexual Memories 0.4.3
+# SN Sexual Memories 0.4.4
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
 
@@ -52,6 +52,9 @@ to say:
   as a willing partner instead, even in a dominating or rough scene.
 - **Complaints about a partner.** Now and then an NPC near you who has a husband, wife or lover
   complains to you about them, but only while that partner is out of earshot.
+- **Followers talk behind your back** (off by default). When two or more of your followers are
+  near you, now and then one of them talks about you to another, thinking you cannot hear. You
+  hear every word.
 - **Your character speaks up** (off by default). Now and then your character says something to an
   NPC nearby, drawing on what just happened, on what your character remembers (about that person
   above all) and on how the two of you stand. The NPC answers, and the line is shown as a subtitle.
@@ -128,6 +131,8 @@ the game's `Data` folder.
 | NPCs complain about their partner | On | The complaints. |
 | Time between chances (seconds) | 600 | How often a chance for a complaint comes. |
 | Who complains | Women and men | Or women only, or men only. |
+| Followers gossip about you | Off | The followers' talk behind your back. |
+| Time between chances (seconds) | 600 | How often a chance for it comes. |
 | Speak to people nearby | Off | Your character speaks up. |
 | Time between chances (seconds) | 900 | How often your character may speak up, from 10 seconds. Nothing is said in combat, in a menu, during a scene or while SkyrimNet is speaking. |
 | Open the relationship map | Y | The key that opens the relationship map. |
@@ -171,6 +176,13 @@ relationship at the Lover level (spouses and lovers) with someone other than you
 partner is not loaded or is farther than SkyrimNet's talking distance times its awareness
 multiplier. SkyrimNet's own settings are only read, never changed. SkyrimNet has no whisper mode
 for NPCs, so this distance rule is what keeps the partner from overhearing.
+
+The talk behind your back needs two or more followers within SkyrimNet's talking distance of you
+(your teammates, or members of the game's follower faction), none of them in combat, asleep or in
+a scene. One of them, picked at random, talks to another about you; SkyrimNet is told that the
+two believe you are out of earshot, though you hear it all. What they say comes from the
+speaker's character, memories and feelings about you, so it can be fond teasing as well as real
+resentment.
 
 When your character speaks up, the line is written with the bundled prompt
 `sn_sexual_history_player_talk`, spoken with your character's voice when SkyrimNet voices the
@@ -248,7 +260,7 @@ dashboard if you want them gone.
 | `src/` | The SKSE plugin (C++23, [CommonLibSSE-NG](https://github.com/alandtse/CommonLibVR/tree/ng)), with the API headers of Prisma UI, Magelight UI and Phantasm. |
 | `view/` | The relationship map's page, shown by Magelight UI or Prisma UI. |
 | `scripts/` | The Papyrus sources. `scripts/stubs/` holds compile-only headers, not shipped: stubs written for this repository that declare only the functions used from OStim, OStimNet, SexLab, SKSE and MCM Helper, and SkyrimNet's MIT-licensed Papyrus API `SkyrimNetApi.psc` (license in `scripts/stubs/LICENSE-SkyrimNetApi.txt`). |
-| `plugin/` | `SN_SexualHistory.esp` as YAML: one quest each for the memories, the lines and the MCM, the complaints, and your character speaking up. |
+| `plugin/` | `SN_SexualHistory.esp` as YAML: one quest each for the memories, the lines and the MCM, the complaints, your character speaking up, and the followers' talk behind your back. |
 | `mcm/` | The MCM config (`MCM/Config/SN_SexualHistory/`). |
 | `skyrimnet-plugin/` | The SkyrimNet prompt bundle. |
 | `tools/` | `make_strings.py` writes the MCM and relationship map texts in English or Japanese; `build_fomod.ps1` builds and checks the release installer. |
