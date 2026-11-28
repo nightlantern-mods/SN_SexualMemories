@@ -9,6 +9,15 @@
 			"text": "$SNSH_HeaderMemories"
 		},
 		{
+			"id": "bMemories:General",
+			"type": "toggle",
+			"text": "$SNSH_Memories",
+			"help": "$SNSH_MemoriesHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
 			"id": "bWitness:General",
 			"type": "toggle",
 			"text": "$SNSH_Witness",
@@ -22,6 +31,15 @@
 			"type": "toggle",
 			"text": "$SNSH_Diary",
 			"help": "$SNSH_DiaryHelp",
+			"valueOptions": {
+				"sourceType": "ModSettingBool"
+			}
+		},
+		{
+			"id": "bQuestDiary:General",
+			"type": "toggle",
+			"text": "$SNSH_QuestDiary",
+			"help": "$SNSH_QuestDiaryHelp",
 			"valueOptions": {
 				"sourceType": "ModSettingBool"
 			}

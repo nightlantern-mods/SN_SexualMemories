@@ -7,8 +7,14 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
         SexualHistory::Init();
         break;
     case SKSE::MessagingInterface::kPreLoadGame:
+        SexualHistory::Reset();
+        break;
     case SKSE::MessagingInterface::kNewGame:
         SexualHistory::Reset();
+        SexualHistory::AfterLoad();
+        break;
+    case SKSE::MessagingInterface::kPostLoadGame:
+        SexualHistory::AfterLoad();
         break;
     }
 }

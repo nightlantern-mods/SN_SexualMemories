@@ -24,6 +24,8 @@ Int Property MaxActions = 6 AutoReadOnly
 Actor[] spoken
 Int spokenCount
 Actor lastSpeaker
+; Set once the stroll's possible leftover (an AI-driven player) has been cleared in this save.
+Bool strollCleared
 
 Event OnInit()
 	; MCM Helper and SkyUI register the menu from their own OnInit.
@@ -40,6 +42,15 @@ Function Setup()
 	RegisterMapKey()
 	PushMapSettings()
 	SN_SexualHistoryNative.SetDiaryEnabled(GetModSettingBool("bDiary:General"))
+	SN_SexualHistoryNative.SetMemoriesEnabled(GetModSettingBool("bMemories:General"))
+	SN_SexualHistoryNative.SetQuestDiaryEnabled(GetModSettingBool("bQuestDiary:General"))
+	; The stroll (a trial, taken out again) left the player AI-driven while it ran; a save made
+	; during one would keep them so with nothing left to end it. Once per save, control is handed
+	; back.
+	If !strollCleared
+		strollCleared = True
+		Game.SetPlayerAIDriven(False)
+	EndIf
 EndFunction
 
 Event OnSettingChange(String a_ID)
@@ -51,6 +62,10 @@ Event OnSettingChange(String a_ID)
 		PushMapSettings()
 	ElseIf a_ID == "bDiary:General"
 		SN_SexualHistoryNative.SetDiaryEnabled(GetModSettingBool("bDiary:General"))
+	ElseIf a_ID == "bMemories:General"
+		SN_SexualHistoryNative.SetMemoriesEnabled(GetModSettingBool("bMemories:General"))
+	ElseIf a_ID == "bQuestDiary:General"
+		SN_SexualHistoryNative.SetQuestDiaryEnabled(GetModSettingBool("bQuestDiary:General"))
 	EndIf
 EndEvent
 
@@ -74,7 +89,10 @@ EndFunction
 
 ; Opens the relationship map, with the NPC under the crosshair chosen when there is one.
 Event OnKeyDown(Int keyCode)
-	If keyCode != GetModSettingInt("iMapKey:General") || Utility.IsInMenuMode() || UI.IsTextInputEnabled()
+	If Utility.IsInMenuMode() || UI.IsTextInputEnabled()
+		Return
+	EndIf
+	If keyCode != GetModSettingInt("iMapKey:General")
 		Return
 	EndIf
 	If !SN_SexualHistoryNative.OpenRelationshipMap(Game.GetCurrentCrosshairRef() as Actor)

@@ -15,4 +15,7 @@ namespace SexualHistory
 
     // Drops scenes collected before a load or a new game.
     void Reset();
+
+    // kPostLoadGame / kNewGame: notes how every quest's journal stands (for the quest diary).
+    void AfterLoad();
 }

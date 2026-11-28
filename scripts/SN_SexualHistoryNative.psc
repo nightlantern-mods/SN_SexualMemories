@@ -49,6 +49,13 @@ Function SetMapSettings(Int aiMemoryScan, Int aiMemoriesUsed, Int aiEventScan, I
 ; Whether every NPC who took part in a scene also writes a diary entry about it (MCM bDiary).
 Function SetDiaryEnabled(Bool abEnabled) Global Native
 
+; Whether the player and nearby followers write a diary entry when a quest's journal changes
+; (MCM bQuestDiary).
+Function SetQuestDiaryEnabled(Bool abEnabled) Global Native
+
+; Whether the participants of a scene get a memory of it (MCM bMemories).
+Function SetMemoriesEnabled(Bool abEnabled) Global Native
+
 ; True when Magelight UI or Prisma UI is installed, so the relationship map can be shown.
 Bool Function RelationshipMapAvailable() Global Native
 

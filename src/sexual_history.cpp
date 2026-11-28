@@ -9,7 +9,10 @@
 #include <fstream>
 #include <filesystem>
 #include <nlohmann/json.hpp>
+#include <deque>
 #include <optional>
+#include <random>
+#include <set>
 #include <thread>
 
 namespace SexualHistory
@@ -24,7 +27,8 @@ namespace SexualHistory
         constexpr const char* kMemoryVariant = "sn_sexual_memories_memory";  // scene and witness memories, its own card
         constexpr const char* kDiaryPromptName = "sn_sexual_history_diary";
         constexpr const char* kDiaryVariant = "sn_sexual_memories_diary";  // its own card in AI > Models
-        std::atomic<bool>     g_diaryEnabled = false;                     // MCM bDiary, off by default
+        std::atomic<bool>     g_diaryEnabled = false;
+        std::atomic<bool>     g_memoriesEnabled = true;                    // MCM bMemories, on by default                     // MCM bDiary, off by default
         constexpr RE::FormID  kPlayerID = 0x14;
         constexpr const char* kDashboardMarker = "[Sexual Memories]";
         constexpr const char* kWitnessMarker = "[Sexual Memories / Witness]";
@@ -391,7 +395,11 @@ namespace SexualHistory
 
             // Everyone who took part gets a memory, the player too: SkyrimNet reads the player's
             // memories when it writes the player's lines and thoughts.
+            // (Off in the MCM: no participant gets one; the witness and the diary have their own switches.)
             for (const auto& owner : a_scene->actors) {
+                if (!g_memoriesEnabled) {
+                    break;
+                }
                 const auto context = Dump(BuildContext(*a_scene, owner, events, memories));
                 const bool queued = PublicSendCustomPromptToLLM(kPromptName, kMemoryVariant, context.c_str(),
                     [a_scene, owner](const char* a_response, int a_success) {
@@ -1886,6 +1894,344 @@ namespace SexualHistory
         };
 
         // MCM bDiary: a diary entry for the NPCs after every scene.
+        // MCM bMemories: the participants' memories of a scene.
+        void SetMemoriesEnabled(RE::StaticFunctionTag*, bool a_enabled)
+        {
+            g_memoriesEnabled = a_enabled;
+            logger::info("Scene memories: {}", a_enabled ? "on" : "off");
+        }
+
+        // ---- Quest diary (MCM bQuestDiary) ----------------------------------------------------
+        // When a quest's journal changes (an objective shown, completed or failed, or the quest
+        // completed), the player and the followers near them each write a diary entry about it,
+        // with this mod's prompt on the diary card (sn_sexual_memories_diary). Stage log texts are
+        // not in the game's memory, so the journal is read from the objectives' texts and states,
+        // compared with how they stood before. Updates within a few seconds go into one entry.
+
+        constexpr const char* kQuestDiaryPrompt = "sn_sexual_history_quest_diary";
+        std::atomic<bool>     g_questDiaryEnabled = false;  // MCM bQuestDiary, off by default
+        // Game thread only: each quest's objectives as last seen (index -> state).
+        std::map<RE::FormID, std::map<std::uint16_t, std::uint8_t>> g_questObjectives;
+        std::map<RE::FormID, bool>                                  g_questCompleted;
+        std::map<RE::FormID, bool>                                  g_questRunning;
+        std::atomic<bool>                                           g_questReady = false;  // the record above belongs to the game now loaded
+        std::mutex                                                  g_questLock;
+        std::set<RE::FormID>                                        g_questPending;
+        bool                                                        g_questCheckQueued = false;
+
+        std::map<std::uint16_t, std::uint8_t> ObjectiveStates(RE::TESQuest* a_quest)
+        {
+            std::map<std::uint16_t, std::uint8_t> states;
+            for (auto* objective : a_quest->objectives) {
+                if (objective) {
+                    states[objective->index] = static_cast<std::uint8_t>(objective->state.get());
+                }
+            }
+            return states;
+        }
+
+        // kPostLoadGame / kNewGame: how every quest's journal stands now, so that loading a save
+        // is not taken for new progress.
+        void SnapshotQuests()
+        {
+            g_questObjectives.clear();
+            g_questCompleted.clear();
+            g_questRunning.clear();
+            auto* data = RE::TESDataHandler::GetSingleton();
+            if (!data) {
+                return;
+            }
+            for (auto* quest : data->GetFormArray<RE::TESQuest>()) {
+                if (quest) {
+                    g_questObjectives[quest->GetFormID()] = ObjectiveStates(quest);
+                    g_questCompleted[quest->GetFormID()] = quest->IsCompleted();
+                    g_questRunning[quest->GetFormID()] = quest->IsRunning();
+                }
+            }
+            g_questReady = true;
+        }
+
+        void QueueQuestCheck(RE::FormID a_quest);
+
+        // Game thread, every few seconds: quests whose journal moved without a stage change (many
+        // side quests start, and show objectives, straight from a script) are checked too.
+        void PollQuests()
+        {
+            if (!g_questReady) {
+                return;
+            }
+            auto* data = RE::TESDataHandler::GetSingleton();
+            if (!data) {
+                return;
+            }
+            using S = RE::QUEST_OBJECTIVE_STATE;
+            for (auto* quest : data->GetFormArray<RE::TESQuest>()) {
+                if (!quest) {
+                    continue;
+                }
+                const auto id = quest->GetFormID();
+                const bool running = quest->IsRunning();
+                const auto wasRunning = g_questRunning.find(id);
+                if (!running && (wasRunning == g_questRunning.end() || !wasRunning->second)) {
+                    continue;  // not running now nor before: nothing to show
+                }
+                const bool moved = (wasRunning == g_questRunning.end() || wasRunning->second != running) ||
+                                   g_questCompleted[id] != quest->IsCompleted() || g_questObjectives[id] != ObjectiveStates(quest);
+                if (moved) {
+                    QueueQuestCheck(id);
+                }
+            }
+        }
+
+        // The lines of the journal that changed since it was last seen: "quest started",
+        // "new objective: ...", "objective completed: ...", "objective failed: ...", "quest
+        // completed". Updates the record.
+        json QuestChanges(RE::TESQuest* a_quest)
+        {
+            json changes = json::array();
+            auto&      before = g_questObjectives[a_quest->GetFormID()];
+            const auto now = ObjectiveStates(a_quest);
+            using S = RE::QUEST_OBJECTIVE_STATE;
+            // Started since last seen: a quest of the journal (one with a type, or one showing an
+            // objective now), not one of the many nameless-to-the-player background quests.
+            const bool running = a_quest->IsRunning();
+            if (running && !g_questRunning[a_quest->GetFormID()]) {
+                const bool shown = std::ranges::any_of(now, [](const auto& entry) {
+                    const auto state = static_cast<S>(entry.second);
+                    return state == S::kDisplayed || state == S::kCompletedDisplayed || state == S::kFailedDisplayed;
+                });
+                if (shown || a_quest->GetType() != RE::QUEST_DATA::Type::kNone) {
+                    changes.push_back("quest started");
+                }
+            }
+            g_questRunning[a_quest->GetFormID()] = running;
+            for (auto* objective : a_quest->objectives) {
+                if (!objective) {
+                    continue;
+                }
+                const auto state = static_cast<S>(now.at(objective->index));
+                const auto old = before.contains(objective->index) ? static_cast<S>(before[objective->index]) : S::kDormant;
+                if (state == old) {
+                    continue;
+                }
+                const std::string text = objective->displayText.c_str();
+                if (text.empty()) {
+                    continue;
+                }
+                if (state == S::kDisplayed && old == S::kDormant) {
+                    changes.push_back("new objective: " + text);
+                } else if (state == S::kCompletedDisplayed || state == S::kCompleted) {
+                    changes.push_back("objective completed: " + text);
+                } else if (state == S::kFailedDisplayed || state == S::kFailed) {
+                    changes.push_back("objective failed: " + text);
+                }
+            }
+            before = now;
+            const bool completed = a_quest->IsCompleted();
+            if (completed && !g_questCompleted[a_quest->GetFormID()]) {
+                changes.push_back("quest completed");
+            }
+            g_questCompleted[a_quest->GetFormID()] = completed;
+            return changes;
+        }
+
+        void StoreQuestDiary(RE::FormID a_owner, const std::string& a_name, const std::string& a_location, const std::string& a_response)
+        {
+            const auto  answer = ParseLooseJson(a_response);
+            std::string content = answer.is_object() ? answer.value("content", std::string()) : std::string();
+            if (content.empty()) {
+                logger::error("Empty quest diary entry for {}: {}", a_name, Truncate(a_response, 300));
+                return;
+            }
+            const auto emotion = answer.value("emotion", std::string());
+            float      importance = 0.5f;
+            if (answer.contains("importance_score") && answer["importance_score"].is_number()) {
+                importance = answer["importance_score"].get<float>();
+            }
+            importance = std::clamp(importance, 0.3f, 0.8f);
+            const auto id = PublicAddDiaryEntry(a_owner, content.c_str(), 0.0, "quest_diary", emotion.empty() ? nullptr : emotion.c_str(), importance,
+                a_location.c_str());
+            if (id > 0) {
+                logger::info("Quest diary entry {} for {} ({:08X}), {} {:.2f}: {}", id, a_name, a_owner, emotion, importance, content);
+            } else {
+                logger::error("SkyrimNet refused the quest diary entry for {} ({:08X})", a_name, a_owner);
+            }
+        }
+
+        struct QuestWriter
+        {
+            RE::FormID  formID;
+            std::string name;
+            bool        player;
+        };
+
+        // Worker thread: one request per writer.
+        void WriteQuestDiaries(std::vector<QuestWriter> a_writers, json a_updates, std::string a_location, std::string a_date)
+        {
+            for (const auto& writer : a_writers) {
+                json events = json::array();
+                if (PublicGetRecentEvents) {
+                    auto recent = ParseArray(PublicGetRecentEvents(writer.formID, 25, ""));
+                    std::reverse(recent.begin(), recent.end());
+                    for (const auto& event : recent) {
+                        events.push_back(EventLine(event));
+                    }
+                }
+                std::string questNames;
+                for (const auto& update : a_updates) {
+                    questNames += (questNames.empty() ? "" : ", ") + update.value("quest", std::string());
+                }
+                const json context = {
+                    { "owner_name", writer.name },
+                    { "owner_form_id", writer.formID },
+                    { "is_player", writer.player },
+                    { "updates", a_updates },
+                    { "location", a_location },
+                    { "game_date", a_date },
+                    { "events", events },
+                    { "memories", MemoryTexts(writer.formID, 5, questNames) },
+                    { "recent_diaries", RecentDiaries(writer.formID) },
+                };
+                const auto owner = writer;
+                const bool queued = PublicSendCustomPromptToLLM(kQuestDiaryPrompt, kDiaryVariant, Dump(context).c_str(),
+                    [owner, a_location](const char* a_response, int a_success) {
+                        const std::string response = a_response ? a_response : "";
+                        if (a_success == 1) {
+                            StoreQuestDiary(owner.formID, owner.name, a_location, response);
+                        } else {
+                            logger::error("Quest diary entry for {} failed: {}", owner.name, response);
+                        }
+                    });
+                if (!queued) {
+                    logger::error("Could not queue the quest diary entry for {}", writer.name);
+                }
+            }
+        }
+
+        // Game thread, a few seconds after the first stage change: what changed in the journal of
+        // the quests that moved, and who writes about it.
+        void RunQuestCheck()
+        {
+            std::set<RE::FormID> pending;
+            {
+                std::scoped_lock lock(g_questLock);
+                pending.swap(g_questPending);
+                g_questCheckQueued = false;
+            }
+            json updates = json::array();
+            for (const auto id : pending) {
+                auto* quest = RE::TESForm::LookupByID<RE::TESQuest>(id);
+                const std::string name = quest && quest->GetName() ? quest->GetName() : "";
+                if (!quest) {
+                    continue;
+                }
+                auto changes = QuestChanges(quest);
+                if (name.empty()) {
+                    // A nameless quest shows in the journal's Miscellaneous section only through its
+                    // objectives: those count; its starting and ending alone (background quests do
+                    // that all the time) do not.
+                    json objectives = json::array();
+                    for (const auto& change : changes) {
+                        if (change.get<std::string>().rfind("quest ", 0) != 0) {
+                            objectives.push_back(change);
+                        }
+                    }
+                    if (!objectives.empty()) {
+                        updates.push_back({ { "quest", "Miscellaneous" }, { "changes", objectives } });
+                        logger::info("Quest diary: Miscellaneous ({:08X}) {}", id, Dump(objectives));
+                    }
+                    continue;
+                }
+                if (!changes.empty()) {
+                    updates.push_back({ { "quest", name }, { "changes", changes } });
+                    logger::info("Quest diary: {} ({:08X}) {}", name, id, Dump(changes));
+                } else if (!quest->objectives.empty()) {
+                    logger::info("Quest diary: {} ({:08X}) moved, no journal change", name, id);
+                }
+            }
+            if (updates.empty() || !g_questDiaryEnabled || !PublicSendCustomPromptToLLM || !PublicAddDiaryEntry) {
+                return;
+            }
+            auto* player = RE::PlayerCharacter::GetSingleton();
+            if (!player) {
+                return;
+            }
+            std::vector<QuestWriter> writers{ { kPlayerID, ActorName(player), true } };
+            for (auto* follower : NearbyFollowers(nullptr, 3000.0f)) {
+                writers.push_back({ follower->GetFormID(), ActorName(follower), false });
+            }
+            std::string location;
+            if (auto* here = player->GetCurrentLocation(); here && here->GetName()) {
+                location = here->GetName();
+            } else if (auto* cell = player->GetParentCell(); cell && cell->GetName()) {
+                location = cell->GetName();
+            }
+            std::thread(WriteQuestDiaries, std::move(writers), std::move(updates), std::move(location), GameDateString()).detach();
+        }
+
+        void QueueQuestCheck(RE::FormID a_quest)
+        {
+            std::scoped_lock lock(g_questLock);
+            g_questPending.insert(a_quest);
+            if (g_questCheckQueued) {
+                return;
+            }
+            g_questCheckQueued = true;
+            std::thread([] {
+                // Stage fragments set the objectives after the stage itself; and several stages
+                // often move at once.
+                std::this_thread::sleep_for(std::chrono::seconds(4));
+                SKSE::GetTaskInterface()->AddTask([] { RunQuestCheck(); });
+            }).detach();
+        }
+
+        void QueueQuestCheck(RE::FormID a_quest);
+
+        class QuestStartStopSink : public RE::BSTEventSink<RE::TESQuestStartStopEvent>
+        {
+        public:
+            static QuestStartStopSink* Get()
+            {
+                static QuestStartStopSink sink;
+                return &sink;
+            }
+
+            RE::BSEventNotifyControl ProcessEvent(const RE::TESQuestStartStopEvent* a_event, RE::BSTEventSource<RE::TESQuestStartStopEvent>*) override
+            {
+                if (a_event) {
+                    QueueQuestCheck(a_event->formID);
+                }
+                return RE::BSEventNotifyControl::kContinue;
+            }
+        };
+
+        class QuestStageSink : public RE::BSTEventSink<RE::TESQuestStageEvent>
+        {
+        public:
+            static QuestStageSink* Get()
+            {
+                static QuestStageSink sink;
+                return &sink;
+            }
+
+            RE::BSEventNotifyControl ProcessEvent(const RE::TESQuestStageEvent* a_event, RE::BSTEventSource<RE::TESQuestStageEvent>*) override
+            {
+                if (a_event) {
+                    // Watched even while the option is off, so the record of each journal stays
+                    // current and turning it on does not dig up old progress.
+                    QueueQuestCheck(a_event->formID);
+                }
+                return RE::BSEventNotifyControl::kContinue;
+            }
+        };
+
+        // MCM bQuestDiary.
+        void SetQuestDiaryEnabled(RE::StaticFunctionTag*, bool a_enabled)
+        {
+            g_questDiaryEnabled = a_enabled;
+            logger::info("Quest diary entries: {}", a_enabled ? "on" : "off");
+        }
+
         void SetDiaryEnabled(RE::StaticFunctionTag*, bool a_enabled)
         {
             g_diaryEnabled = a_enabled;
@@ -1947,6 +2293,24 @@ namespace SexualHistory
                 input->AddEventSink(EscapeWatcher::GetSingleton());
             }
         }
+        if (auto* events = RE::ScriptEventSourceHolder::GetSingleton()) {
+            events->AddEventSink<RE::TESQuestStageEvent>(QuestStageSink::Get());
+            events->AddEventSink<RE::TESQuestStartStopEvent>(QuestStartStopSink::Get());
+        }
+        // The journal watch: every 5 seconds a look at the running quests (game thread).
+        std::thread([] {
+            for (;;) {
+                std::this_thread::sleep_for(std::chrono::seconds(5));
+                if (auto* tasks = SKSE::GetTaskInterface(); tasks && g_questReady) {
+                    tasks->AddTask([] { PollQuests(); });
+                }
+            }
+        }).detach();
+    }
+
+    void AfterLoad()
+    {
+        SnapshotQuests();
     }
 
     bool RegisterPapyrus(RE::BSScript::IVirtualMachine* a_vm)
@@ -1966,6 +2330,8 @@ namespace SexualHistory
         a_vm->RegisterFunction("RelationshipMapAvailable", kScriptName, RelationshipMapAvailable);
         a_vm->RegisterFunction("SetMapSettings", kScriptName, SetMapSettings);
         a_vm->RegisterFunction("SetDiaryEnabled", kScriptName, SetDiaryEnabled);
+        a_vm->RegisterFunction("SetQuestDiaryEnabled", kScriptName, SetQuestDiaryEnabled);
+        a_vm->RegisterFunction("SetMemoriesEnabled", kScriptName, SetMemoriesEnabled);
         return true;
     }
 
@@ -1978,6 +2344,7 @@ namespace SexualHistory
             std::scoped_lock lock(g_faceLock);
             g_faces.clear();  // another game: the same IDs may be other people
         }
+        g_questReady = false;
         std::scoped_lock lock(g_lock);
         g_scenes.clear();
     }

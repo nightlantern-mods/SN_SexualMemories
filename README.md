@@ -1,11 +1,11 @@
-# SN Sexual Memories 0.4.4
+# SN Sexual Memories 0.4.5
 
 **Adult content.** A SkyrimNet add-on for OStim Standalone or SexLab (P+ / 1.6x) in Skyrim SE/AE.
 
 > [!IMPORTANT]
 > **This mod keeps adding features that make your world livelier and chattier.** Each of them
 > sends extra requests to your LLM. If things get too busy, or you are watching your LLM costs,
-> turn features off in the MCM. (The memories of the people in a scene are always made: one
+> turn features off in the MCM. (The memories of the people in a scene are on by default: one
 > request per participant when a scene ends.)
 
 > [!WARNING]
@@ -63,6 +63,10 @@ to say:
   it is what they never say aloud, how things have changed with the others over their history
   together, what they mean to do next, and how they see their life so far and where it is going,
   unflattering thoughts included. It is stored as their SkyrimNet diary entry.
+- **Diary entries when a quest moves on** (off by default). Whenever a quest's journal changes (a
+  quest started, an objective shown, completed or failed, or the quest completed), you and every follower near you
+  write a diary entry about it in your own voices: what happened as each of you saw it and what
+  you really think of it. It uses the same model card as the scene diaries.
 - **Relationship map** (needs Magelight UI or Prisma UI). Press a key (Y by default) to open it,
   choose yourself or an NPC nearby, take anyone you do not want off the list, press Create, and
   SkyrimNet's AI writes what lies between them and up to ten people around you: what happened between them, in order, how each feels about the other, the key
@@ -122,7 +126,9 @@ the game's `Data` folder.
 
 | Setting | Default | |
 |---|---|---|
+| Those who took part remember the scene | On | Everyone who took part gets a memory of the scene. Off stops only these memories; the witness and the diary entries have their own switches. |
 | A witness remembers too | On | One bystander who saw the scene also gets a memory. |
+| Diary entries when a quest moves on | Off | You and the followers near you write a diary entry whenever a quest's journal changes. One more request per person each time. |
 | Diary entries after scenes | Off | After a scene, everyone who took part (you too) writes a diary entry. One more request per person. |
 | NPCs speak during scenes | On | The lines during scenes. |
 | Time between checks (seconds) | 30 | How often running scenes are looked for. Each check lets one NPC speak; nothing is said while SkyrimNet is still speaking. |
@@ -142,7 +148,7 @@ the game's `Data` folder.
 | Diary entries read per person | 30 | How many of each person's latest diary entries are read (0: none). |
 | Length kept of each record (characters) | 400 | How much of each memory, event or diary passage the AI sees. |
 
-The memories of the participants are always made.
+The memories of the participants are on by default; they can be turned off on their own.
 
 ## How it works
 

@@ -3,14 +3,14 @@
 # models: players set them in SkyrimNet's dashboard, AI > Models.
 plugin:
   name: SNSexualMemories
-  version: "0.4.4"
-  description: "SN Sexual Memories: scene memories, diary entries after scenes, lines during scenes, complaints, your character speaking up, followers talking behind your back, and the relationship map."
+  version: "0.4.5"
+  description: "SN Sexual Memories: scene memories, diary entries after scenes, lines during scenes, complaints, your character speaking up, followers talking behind your back, quest diary entries, and the relationship map."
 
 variants:
   - name: sn_sexual_memories_memory
     description: "Writes the memories of a scene: one request per person who took part, and one for a witness. Answers in JSON."
   - name: sn_sexual_memories_diary
-    description: "Writes the diary entry each person who took part writes after a scene (only when the MCM's diary option is on): one request per person. Answers in JSON."
+    description: "Writes the diary entries: after a scene, one per person who took part (MCM diary option), and when a quest's journal changes, one for the player and each follower near them (MCM quest diary option). Answers in JSON."
   - name: sn_sexual_memories_relmap
     description: "Draws the relationship map: one request per person around the centre (what happened between them and how they feel, from their memories and events), then one for the summary. Answers in JSON; a model that follows JSON instructions well is best."
 
